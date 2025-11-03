@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { loginUser } from "../api/userApi";
 import type { LoginReq, LoginResp } from "../types/user";
+import { Navigate, useNavigate } from "react-router-dom";
 
 export default function LoginPage() {
   const [form, setForm] = useState<LoginReq>({
@@ -8,14 +9,14 @@ export default function LoginPage() {
     password: "",
   });
   const [msg, setMsg] = useState("");
-
+  const navigate = useNavigate(); // ✅ Hook 初始化
   async function handleLogin() {
     try {
       const resp: LoginResp = await loginUser(form);
 
       if (resp.isSuccessful) {
-        setMsg(`✅ Welcome, ${resp.userName}`);
-        // 这里将来可以存 token / cookie 等等
+        setMsg(`✅ Welcome, ${resp.userName} \n navigating to the index`);
+        setTimeout(() => navigate("/talk"), 1000);
       } else {
         setMsg(`❌ ${resp.errorMessage}`);
       }

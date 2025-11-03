@@ -2,7 +2,7 @@ import { useState } from "react";
 import { sendVerificationCode, verifyEmailCode } from "../api/verificationApi";
 import { signUpUser } from "../api/userApi";
 import type { SignUpReq } from "../types/user";
-import { useNavigate } from "react-router-dom"; // ✅ 新增
+import { useNavigate } from "react-router-dom";
 
 export default function SignupPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -13,36 +13,36 @@ export default function SignupPage() {
   const [msg, setMsg] = useState("");
   const navigate = useNavigate(); // ✅ Hook 初始化
 
-  /** Step 1 - 发送验证码 */
+  /** Step 1 - send verification code */
   const handleSendCode = async () => {
     const res = await sendVerificationCode({ email, purpose: "signup" });
     if (res.is_successful) {
-      setMsg("✅ 验证码已发送，请查收邮箱");
+      setMsg("✅ Verification code sent, please check inbox(might be in Spam Section)");
       setStep(2);
     } else {
-      setMsg("❌ " + res.error_message);
+      setMsg("There is an error :( " + res.error_message + "\n please refresh the page and try again");
     }
   };
 
-  /** Step 2 - 校验验证码 */
+  /** Step 2 - Verify the code */
   const handleVerifyCode = async () => {
     const res = await verifyEmailCode({ email, code });
     if (res.is_successful) {
-      setMsg("✅ 邮箱验证成功");
+      setMsg("✅ Mail Verified!");
       setStep(3);
     } else {
       setMsg("❌ " + res.error_message);
     }
   };
 
-  /** Step 3 - 注册账号 */
+  /** Step 3 - Register Account */
   const handleSignup = async () => {
     const req: SignUpReq = { username, email, password };
     const res = await signUpUser(req);
     if (res.isSuccessful) {
-      setMsg("🎉 注册成功，正在跳转到登录页面...");
-      // ✅ 延迟跳转到登录页
-      setTimeout(() => navigate("/login"), 1500);
+      setMsg("🎉 Registered Successfully, navigating to login page in 3 second...");
+      // ✅ navigate to login page
+      setTimeout(() => navigate("/login"), 3000);
     } else {
       setMsg("❌ " + res.errorMessage);
     }
@@ -50,7 +50,7 @@ export default function SignupPage() {
 
   return (
     <div>
-      <h1>Sign Up</h1>
+      <h1>YOoO! This is the Sign Up page!</h1>
       <p>{msg}</p>
 
       {step === 1 && (
@@ -60,7 +60,7 @@ export default function SignupPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <button onClick={handleSendCode}>发送验证码</button>
+          <button onClick={handleSendCode}>Send Verification Code</button>
         </div>
       )}
 
@@ -71,7 +71,7 @@ export default function SignupPage() {
             value={code}
             onChange={(e) => setCode(e.target.value)}
           />
-          <button onClick={handleVerifyCode}>验证邮箱</button>
+          <button onClick={handleVerifyCode}>Verify the Code</button>
         </div>
       )}
 
@@ -88,7 +88,7 @@ export default function SignupPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <button onClick={handleSignup}>注册</button>
+          <button onClick={handleSignup}>Register</button>
         </div>
       )}
     </div>
