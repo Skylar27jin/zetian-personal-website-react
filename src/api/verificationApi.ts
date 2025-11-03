@@ -1,3 +1,4 @@
+// src/api/verificationApi.ts
 import type {
   SendVeriCodeToEmailReq,
   SendVeriCodeToEmailResp,

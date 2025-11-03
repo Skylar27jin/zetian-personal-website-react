@@ -15,8 +15,8 @@ export default function LoginPage() {
       const resp: LoginResp = await loginUser(form);
 
       if (resp.isSuccessful) {
-        setMsg(`✅ Welcome, ${resp.userName} \n navigating to the index`);
-        setTimeout(() => navigate("/talk"), 1000);
+        setMsg(`✅ Welcome, ${resp.userName} \n navigating to 'me'`);
+        setTimeout(() => navigate("/me"), 1000);
       } else {
         setMsg(`❌ ${resp.errorMessage}`);
       }
