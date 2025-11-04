@@ -7,7 +7,13 @@ import {
   favPost,
   unfavPost,
 } from "../api/postApi";
+
 import type { Post } from "../types/post";
+
+import Navbar from "../components/Navbar";
+
+import { Container, Row, Col, Card, Button, Spinner, Alert } from "react-bootstrap";
+import { motion } from "framer-motion";
 
 const LS_KEYS = {
   userId: "me:id",
@@ -181,132 +187,187 @@ export default function UserForumIndex() {
     }
   };
 
-  return (
-    <div className="max-w-3xl mx-auto p-4">
-      <header className="mb-4 space-y-2">
-        <h1 className="text-2xl font-bold">My Forum</h1>
-        {authLoading && <p>Verifying session…</p>}
-        {!authLoading && authError && (
-          <p className="text-red-600">Auth failed: {authError}</p>
-        )}
-        {!authLoading && !authError && (
-          <>
-            <div className="text-sm text-gray-600">
-              Signed in as <b>{username}</b> ({email})
-            </div>
-            <button
-              onClick={() => (window.location.href = "/post/create")}
-              className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-800"
-            >
-              + Create New Post!
-            </button>
-          </>
-        )}
-      </header>
+  function formatTime(isoString: string): string {
+    try {
+      const date = new Date(isoString);
+      // 格式化为 YYYY-MM-DD HH:mm:ss
+      return date.toISOString().slice(0, 19).replace("T", " ");
+    } catch {
+      return isoString;
+    }
+  }
 
-      <section className="space-y-3">
-        {posts.map((p) => (
-          <article key={p.id} className="border rounded p-3">
-            <h2 className="font-semibold text-lg">{p.title}</h2>
-            <div className="text-sm text-gray-500 mb-2">
-              school #{p.school_id} · views {p.view_count}
-            </div>
+return (
+  <div className="bg-light min-vh-100 d-flex flex-column">
+    <Navbar />
 
-            <p className="whitespace-pre-wrap mb-3">{p.content}</p>
+    <main className="flex-grow-1 py-4">
+      <Container className="max-w-3xl">
+        {/* Header */}
+        <header className="text-center mb-4">
+          <h1 className="fw-bold">My Forum</h1>
 
-            {/* --- Likes / Favs --- */}
-            <div className="flex items-center justify-between text-sm mt-2">
-              <div className="flex gap-3">
-                <div>👍 {p.like_count}</div>
-                <div>⭐ {p.fav_count}</div>
-              </div>
-
-              <div className="flex gap-2">
-                {/* Like */}
-                <button
-                  onClick={() => handleLike(p.id)}
-                  disabled={p.is_liked_by_user}
-                  className={`px-3 py-1 border rounded ${
-                    p.is_liked_by_user
-                      ? "opacity-50 cursor-not-allowed"
-                      : "hover:bg-gray-100"
-                  }`}
-                >
-                  Like
-                </button>
-
-                {/* Unlike */}
-                <button
-                  onClick={() => handleUnlike(p.id)}
-                  disabled={!p.is_liked_by_user}
-                  className={`px-3 py-1 border rounded ${
-                    !p.is_liked_by_user
-                      ? "opacity-50 cursor-not-allowed"
-                      : "hover:bg-gray-100"
-                  }`}
-                >
-                  Unlike
-                </button>
-
-                {/* Fav */}
-                <button
-                  onClick={() => handleFav(p.id)}
-                  disabled={p.is_fav_by_user}
-                  className={`px-3 py-1 border rounded ${
-                    p.is_fav_by_user
-                      ? "opacity-50 cursor-not-allowed"
-                      : "hover:bg-gray-100"
-                  }`}
-                >
-                  Fav
-                </button>
-
-                {/* Unfav */}
-                <button
-                  onClick={() => handleUnfav(p.id)}
-                  disabled={!p.is_fav_by_user}
-                  className={`px-3 py-1 border rounded ${
-                    !p.is_fav_by_user
-                      ? "opacity-50 cursor-not-allowed"
-                      : "hover:bg-gray-100"
-                  }`}
-                >
-                  Unfav
-                </button>
-              </div>
-            </div>
-
-            <div className="text-xs text-gray-400 mt-2">
-              created_at: {p.created_at}
-            </div>
-          </article>
-        ))}
-
-        {postsError && <div className="text-red-600">{postsError}</div>}
-
-        <div className="mt-4 flex items-center gap-8">
-          <button
-            onClick={loadMore}
-            disabled={loadingPosts || !hasMore || !!authError}
-            className="px-4 py-2 rounded bg-black text-white disabled:opacity-50"
-          >
-            {loadingPosts ? "Loading…" : hasMore ? "Load more" : "No more"}
-          </button>
-
-          {!authLoading && !authError && posts.length === 0 && !loadingPosts && (
-            <button
-              onClick={() => {
-                setPosts([]);
-                setHasMore(true);
-                setTimeout(() => loadMore(), 0);
-              }}
-              className="px-4 py-2 rounded border"
-            >
-              Refresh
-            </button>
+          {authLoading && (
+            <p className="text-secondary">
+              <Spinner animation="border" size="sm" /> Verifying session…
+            </p>
           )}
+
+          {!authLoading && authError && (
+            <Alert variant="danger">Auth failed: {authError}</Alert>
+          )}
+
+          {!authLoading && !authError && (
+            <>
+              <div className="text-muted small mb-2">
+                Signed in as <b>{username}</b> ({email})
+              </div>
+
+              {/* Create New Post 按钮加动画 */}
+              <motion.div
+                whileTap={{ scale: 1.08 }}
+                transition={{ duration: 0.12 }}
+              >
+                <Button
+                  variant="primary"
+                  onClick={() => (window.location.href = "/post/create")}
+                >
+                  + Create New Post
+                </Button>
+              </motion.div>
+            </>
+          )}
+        </header>
+
+        {/* 帖子列表 */}
+        <Row className="gy-4">
+          {posts.map((p) => (
+            <Col key={p.id} xs={12}>
+              <Card className="shadow-sm border-0">
+                <Card.Body>
+                  <Card.Title className="fw-semibold">{p.title}</Card.Title>
+                  <Card.Subtitle className="mb-2 text-muted small">
+                    🏫 {p.school_name} · 👁 {p.view_count} · 📅{" "}
+                    {formatTime(p.created_at)}
+                  </Card.Subtitle>
+                  <Card.Text>{p.content}</Card.Text>
+
+                  <hr />
+
+                  <Row className="align-items-center text-muted small">
+                    <Col xs="auto">
+                      👍 {p.like_count} · ⭐ {p.fav_count}
+                    </Col>
+
+                    <Col className="text-end">
+                      <div className="d-inline-flex gap-3">
+                        {/* Like：点击切换 like / unlike */}
+                        <motion.div
+                          whileTap={{ scale: 1.15 }}
+                          transition={{ duration: 0.12 }}
+                        >
+                          <Button
+                            size="sm"
+                            variant={
+                              p.is_liked_by_user
+                                ? "primary"
+                                : "outline-secondary"
+                            }
+                            onClick={() =>
+                              p.is_liked_by_user
+                                ? handleUnlike(p.id)
+                                : handleLike(p.id)
+                            }
+                          >
+                            {p.is_liked_by_user ? "💙 Liked" : "👍 Like"}
+                          </Button>
+                        </motion.div>
+
+                        {/* Fav：点击切换 fav / unfav */}
+                        <motion.div
+                          whileTap={{ scale: 1.15 }}
+                          transition={{ duration: 0.12 }}
+                        >
+                          <Button
+                            size="sm"
+                            variant={
+                              p.is_fav_by_user
+                                ? "warning"
+                                : "outline-secondary"
+                            }
+                            onClick={() =>
+                              p.is_fav_by_user
+                                ? handleUnfav(p.id)
+                                : handleFav(p.id)
+                            }
+                          >
+                            {p.is_fav_by_user ? "🌟 Favorited" : "⭐ Fav"}
+                          </Button>
+                        </motion.div>
+                      </div>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+            </Col>
+          ))}
+
+          {postsError && <Alert variant="danger">{postsError}</Alert>}
+        </Row>
+
+        {/* 分页 & 加载 */}
+        <div className="text-center mt-5">
+          <div className="d-flex justify-content-center align-items-center gap-3 flex-wrap">
+            {/* Load more 按钮加动画 */}
+            <motion.div
+              whileTap={{ scale: 1.08 }}
+              transition={{ duration: 0.12 }}
+            >
+              <Button
+                variant="dark"
+                disabled={loadingPosts || !hasMore || !!authError}
+                onClick={loadMore}
+              >
+                {loadingPosts
+                  ? "Loading…"
+                  : hasMore
+                  ? "Load more"
+                  : "No more"}
+              </Button>
+            </motion.div>
+
+            {/* Refresh 按钮加动画 */}
+            {!authLoading &&
+              !authError &&
+              posts.length === 0 &&
+              !loadingPosts && (
+                <motion.div
+                  whileTap={{ scale: 1.08 }}
+                  transition={{ duration: 0.12 }}
+                >
+                  <Button
+                    variant="outline-secondary"
+                    onClick={() => {
+                      setPosts([]);
+                      setHasMore(true);
+                      setTimeout(() => loadMore(), 0);
+                    }}
+                  >
+                    Refresh
+                  </Button>
+                </motion.div>
+              )}
+
+            <div className="text-secondary small">
+              Loaded <b>{posts.length}</b> post
+              {posts.length !== 1 ? "s" : ""}
+              {hasMore ? "" : " (all loaded)"}
+            </div>
+          </div>
         </div>
-      </section>
-    </div>
-  );
+      </Container>
+    </main>
+  </div>
+);
+
 }

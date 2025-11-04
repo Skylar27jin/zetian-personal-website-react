@@ -2,6 +2,15 @@ import React, { useState } from "react";
 import { createPost } from "../api/postApi";
 import type { CreatePostReq, CreatePostResp } from "../types/post";
 import { useNavigate } from "react-router-dom";
+import {
+  Container,
+  Form,
+  Button,
+  Spinner,
+  Alert,
+  Card,
+} from "react-bootstrap";
+import Navbar from "../components/Navbar";
 
 const LS_KEYS = {
   userId: "me:id",
@@ -57,62 +66,93 @@ export default function CreatePostPage() {
       setLoading(false);
     }
   };
+return (
+    <div className="bg-light min-vh-100 d-flex flex-column">
+      {/* 顶部导航栏 */}
+      <Navbar />
 
-  return (
-    <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-4">Create a New Post</h1>
+      {/* 主体内容 */}
+      <main className="flex-grow-1 py-4">
+        <Container style={{ maxWidth: "640px" }}>
+          <Card className="p-4 shadow-sm border-0">
+            <Card.Body>
+              <h1 className="fw-bold mb-4 text-center">Create a New Post</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-semibold mb-1">
-            School ID
-          </label>
-          <input
-            type="number"
-            value={schoolId}
-            onChange={(e) => setSchoolId(Number(e.target.value))}
-            className="w-full border p-2 rounded"
-            placeholder="Enter your school ID"
-          />
-        </div>
+              <Form onSubmit={handleSubmit}>
+                {/* School ID */}
+                <Form.Group className="mb-3">
+                  <Form.Label>School ID</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={schoolId}
+                    onChange={(e) => setSchoolId(Number(e.target.value))}
+                    placeholder="Enter your school ID"
+                    required
+                  />
+                </Form.Group>
 
-        <div>
-          <label className="block text-sm font-semibold mb-1">
-            Title
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full border p-2 rounded"
-            placeholder="Enter post title"
-          />
-        </div>
+                {/* Title */}
+                <Form.Group className="mb-3">
+                  <Form.Label>Title</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Enter post title"
+                    required
+                  />
+                </Form.Group>
 
-        <div>
-          <label className="block text-sm font-semibold mb-1">
-            Content
-          </label>
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="w-full border p-2 rounded min-h-[120px]"
-            placeholder="Write your content here..."
-          />
-        </div>
+                {/* Content */}
+                <Form.Group className="mb-4">
+                  <Form.Label>Content</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={5}
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    placeholder="Write your content here..."
+                    required
+                  />
+                </Form.Group>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="px-4 py-2 bg-black text-white rounded disabled:opacity-50"
-        >
-          {loading ? "Submitting..." : "Submit Post"}
-        </button>
-      </form>
+                {/* Submit Button */}
+                <div className="text-center">
+                  <Button
+                    type="submit"
+                    variant="dark"
+                    disabled={loading}
+                    className="px-4"
+                  >
+                    {loading ? (
+                      <>
+                        <Spinner
+                          animation="border"
+                          size="sm"
+                          className="me-2"
+                        />
+                        Submitting…
+                      </>
+                    ) : (
+                      "Submit Post"
+                    )}
+                  </Button>
+                </div>
+              </Form>
 
-      {message && (
-        <p className="mt-4 text-sm text-center text-gray-700">{message}</p>
-      )}
+              {/* Feedback message */}
+              {message && (
+                <Alert
+                  variant="info"
+                  className="mt-4 text-center py-2 small mb-0"
+                >
+                  {message}
+                </Alert>
+              )}
+            </Card.Body>
+          </Card>
+        </Container>
+      </main>
     </div>
   );
 }

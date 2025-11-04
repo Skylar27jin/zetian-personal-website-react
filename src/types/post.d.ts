@@ -5,6 +5,7 @@ export interface Post {
   id: number;
   user_id: number;
   school_id: number;
+  school_name: string;
   title: string;
   content: string;
   like_count: number;   // computed on server side
