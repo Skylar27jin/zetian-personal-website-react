@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { createPost } from "../api/postApi";
 import type { CreatePostReq, CreatePostResp } from "../types/post";
+import { useNavigate } from "react-router-dom";
 
 const LS_KEYS = {
   userId: "me:id",
@@ -14,7 +15,8 @@ export default function CreatePostPage() {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-
+  const navigate = useNavigate();
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
@@ -42,9 +44,10 @@ export default function CreatePostPage() {
       const resp: CreatePostResp = await createPost(req);
 
       if (resp.isSuccessful) {
-        setMessage("✅ Post created successfully!");
+        setMessage(`✅ Post created successfully!\n Returning to ${localStorage.getItem(LS_KEYS.username)}'s index~`);
         setTitle("");
         setContent("");
+        setTimeout(() => navigate("/me"), 3000);
       } else {
         setMessage(`❌ Failed: ${resp.errorMessage}`);
       }

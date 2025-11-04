@@ -1,7 +1,12 @@
-// src/pages/userForumIndex.tsx
 import React, { useEffect, useState, useCallback } from "react";
 import { me } from "../api/meApi";
-import { getPersonalRecentPosts } from "../api/postApi";
+import {
+  getPersonalRecentPosts,
+  likePost,
+  unlikePost,
+  favPost,
+  unfavPost,
+} from "../api/postApi";
 import type { Post } from "../types/post";
 
 const LS_KEYS = {
@@ -24,15 +29,13 @@ function readUserId(): number | null {
 export default function UserForumIndex() {
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
-
   const [posts, setPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [postsError, setPostsError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
 
-  // Call /me on mount to verify and cache identity
+  // ---------- 验证用户 ----------
   useEffect(() => {
-    //
     let mounted = true;
     (async () => {
       try {
@@ -55,6 +58,7 @@ export default function UserForumIndex() {
     };
   }, []);
 
+  // ---------- 拉取帖子 ----------
   const loadMore = useCallback(async () => {
     const uid = readUserId();
     if (!uid) {
@@ -66,9 +70,10 @@ export default function UserForumIndex() {
     setLoadingPosts(true);
     setPostsError(null);
 
-    // cursor: use the created_at of the last post (RFC3339 string)
     const before =
-      posts.length > 0 ? posts[posts.length - 1].created_at : new Date().toISOString();
+      posts.length > 0
+        ? posts[posts.length - 1].created_at
+        : new Date().toISOString();
 
     try {
       const resp = await getPersonalRecentPosts({
@@ -93,7 +98,6 @@ export default function UserForumIndex() {
     }
   }, [posts, loadingPosts, hasMore]);
 
-  // Auto-load first page after auth success
   useEffect(() => {
     if (!authLoading && !authError && posts.length === 0) {
       loadMore();
@@ -103,37 +107,175 @@ export default function UserForumIndex() {
   const username = localStorage.getItem(LS_KEYS.username) || "";
   const email = localStorage.getItem(LS_KEYS.email) || "";
 
+  // ---------- 操作函数 ----------
+  const updatePostState = (
+    postId: number,
+    updates: Partial<Post>
+  ) => {
+    setPosts((prev) =>
+      prev.map((p) => (p.id === postId ? { ...p, ...updates } : p))
+    );
+  };
+
+  const handleLike = async (postId: number) => {
+    try {
+      const resp = await likePost(postId);
+      if (!resp.isSuccessful) {
+        alert(resp.errorMessage || "Failed to like");
+        return;
+      }
+      updatePostState(postId, {
+        is_liked_by_user: true,
+        like_count: (posts.find((p) => p.id === postId)?.like_count || 0) + 1,
+      });
+    } catch (e: any) {
+      alert(e?.message || "Network error");
+    }
+  };
+
+  const handleUnlike = async (postId: number) => {
+    try {
+      const resp = await unlikePost(postId);
+      if (!resp.isSuccessful) {
+        alert(resp.errorMessage || "Failed to unlike");
+        return;
+      }
+      updatePostState(postId, {
+        is_liked_by_user: false,
+        like_count: (posts.find((p) => p.id === postId)?.like_count || 1) - 1,
+      });
+    } catch (e: any) {
+      alert(e?.message || "Network error");
+    }
+  };
+
+  const handleFav = async (postId: number) => {
+    try {
+      const resp = await favPost(postId);
+      if (!resp.isSuccessful) {
+        alert(resp.errorMessage || "Failed to favorite");
+        return;
+      }
+      updatePostState(postId, {
+        is_fav_by_user: true,
+        fav_count: (posts.find((p) => p.id === postId)?.fav_count || 0) + 1,
+      });
+    } catch (e: any) {
+      alert(e?.message || "Network error");
+    }
+  };
+
+  const handleUnfav = async (postId: number) => {
+    try {
+      const resp = await unfavPost(postId);
+      if (!resp.isSuccessful) {
+        alert(resp.errorMessage || "Failed to unfavorite");
+        return;
+      }
+      updatePostState(postId, {
+        is_fav_by_user: false,
+        fav_count: (posts.find((p) => p.id === postId)?.fav_count || 1) - 1,
+      });
+    } catch (e: any) {
+      alert(e?.message || "Network error");
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto p-4">
-      <header className="mb-4">
+      <header className="mb-4 space-y-2">
         <h1 className="text-2xl font-bold">My Forum</h1>
         {authLoading && <p>Verifying session…</p>}
         {!authLoading && authError && (
           <p className="text-red-600">Auth failed: {authError}</p>
         )}
         {!authLoading && !authError && (
-          <div className="text-sm text-gray-600">
-            Signed in as <b>{username}</b> ({email})
-          </div>
-        )}
-        {!authLoading && !authError && (
-          <button
-            onClick={() => (window.location.href = "/post/create")}
-            className="px-4 py-2 bg-blue-600 text-black rounded hover:bg-blue-800"
-          >
-            + Create New Post!
-          </button>
+          <>
+            <div className="text-sm text-gray-600">
+              Signed in as <b>{username}</b> ({email})
+            </div>
+            <button
+              onClick={() => (window.location.href = "/post/create")}
+              className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-800"
+            >
+              + Create New Post!
+            </button>
+          </>
         )}
       </header>
 
       <section className="space-y-3">
         {posts.map((p) => (
           <article key={p.id} className="border rounded p-3">
-            <h2 className="font-semibold">{p.title}</h2>
-            <div className="text-sm text-gray-500">
-              school #{p.school_id} · views {p.view_count} · likes {p.like_count} · favs {p.fav_count}
+            <h2 className="font-semibold text-lg">{p.title}</h2>
+            <div className="text-sm text-gray-500 mb-2">
+              school #{p.school_id} · views {p.view_count}
             </div>
-            <p className="mt-2 whitespace-pre-wrap">{p.content}</p>
+
+            <p className="whitespace-pre-wrap mb-3">{p.content}</p>
+
+            {/* --- Likes / Favs --- */}
+            <div className="flex items-center justify-between text-sm mt-2">
+              <div className="flex gap-3">
+                <div>👍 {p.like_count}</div>
+                <div>⭐ {p.fav_count}</div>
+              </div>
+
+              <div className="flex gap-2">
+                {/* Like */}
+                <button
+                  onClick={() => handleLike(p.id)}
+                  disabled={p.is_liked_by_user}
+                  className={`px-3 py-1 border rounded ${
+                    p.is_liked_by_user
+                      ? "opacity-50 cursor-not-allowed"
+                      : "hover:bg-gray-100"
+                  }`}
+                >
+                  Like
+                </button>
+
+                {/* Unlike */}
+                <button
+                  onClick={() => handleUnlike(p.id)}
+                  disabled={!p.is_liked_by_user}
+                  className={`px-3 py-1 border rounded ${
+                    !p.is_liked_by_user
+                      ? "opacity-50 cursor-not-allowed"
+                      : "hover:bg-gray-100"
+                  }`}
+                >
+                  Unlike
+                </button>
+
+                {/* Fav */}
+                <button
+                  onClick={() => handleFav(p.id)}
+                  disabled={p.is_fav_by_user}
+                  className={`px-3 py-1 border rounded ${
+                    p.is_fav_by_user
+                      ? "opacity-50 cursor-not-allowed"
+                      : "hover:bg-gray-100"
+                  }`}
+                >
+                  Fav
+                </button>
+
+                {/* Unfav */}
+                <button
+                  onClick={() => handleUnfav(p.id)}
+                  disabled={!p.is_fav_by_user}
+                  className={`px-3 py-1 border rounded ${
+                    !p.is_fav_by_user
+                      ? "opacity-50 cursor-not-allowed"
+                      : "hover:bg-gray-100"
+                  }`}
+                >
+                  Unfav
+                </button>
+              </div>
+            </div>
+
             <div className="text-xs text-gray-400 mt-2">
               created_at: {p.created_at}
             </div>
@@ -150,10 +292,10 @@ export default function UserForumIndex() {
           >
             {loadingPosts ? "Loading…" : hasMore ? "Load more" : "No more"}
           </button>
+
           {!authLoading && !authError && posts.length === 0 && !loadingPosts && (
             <button
               onClick={() => {
-                // manual refresh first page
                 setPosts([]);
                 setHasMore(true);
                 setTimeout(() => loadMore(), 0);

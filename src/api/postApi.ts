@@ -21,6 +21,11 @@ import type {
 
   GetPersonalRecentPostsReq,
   GetPersonalRecentPostsResp,
+  LikePostReq,
+  UnlikePostReq,
+  FavPostReq,
+  UnfavPostReq,
+  UserFlagPostResp,
 } from "../types/post";
 
 const BASE_URL = import.meta.env.VITE_HERTZ_BASE_URL;
@@ -141,3 +146,120 @@ export async function getPersonalRecentPosts(
    - batch get by ids
    - cursor-based pagination helpers
    ============================ */
+
+const LS_KEYS = {
+  userId: "me:id",
+} as const;
+
+// ========================
+// Like / Unlike / Fav / Unfav
+// ========================
+
+/**
+ * Helper to read user_id from localStorage.
+ * Throws if user is not logged in.
+ */
+function getUserIdFromLocalStorage(): number {
+  const raw = localStorage.getItem(LS_KEYS.userId);
+  if (!raw) {
+    throw new Error("You must be logged in to perform this action.");
+  }
+  const num = Number(raw);
+  if (Number.isNaN(num)) {
+    throw new Error("Invalid user id in localStorage.");
+  }
+  return num;
+}
+
+/**
+ * Like post
+ * POST /post/like
+ * body: { user_id, post_id }
+ */
+export async function likePost(postId: number): Promise<UserFlagPostResp> {
+  const userId = getUserIdFromLocalStorage();
+
+  const body: LikePostReq = {
+    user_id: userId,
+    post_id: postId,
+  };
+
+  const res = await fetch(`${BASE_URL}/post/like`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    credentials: "include", // send cookies (JWT)
+  });
+
+  const data = (await res.json()) as UserFlagPostResp;
+  return data;
+}
+
+/**
+ * Unlike post
+ * POST /post/unlike
+ */
+export async function unlikePost(postId: number): Promise<UserFlagPostResp> {
+  const userId = getUserIdFromLocalStorage();
+
+  const body: UnlikePostReq = {
+    user_id: userId,
+    post_id: postId,
+  };
+
+  const res = await fetch(`${BASE_URL}/post/unlike`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    credentials: "include",
+  });
+
+  const data = (await res.json()) as UserFlagPostResp;
+  return data;
+}
+
+/**
+ * Favorite post
+ * POST /post/fav
+ */
+export async function favPost(postId: number): Promise<UserFlagPostResp> {
+  const userId = getUserIdFromLocalStorage();
+
+  const body: FavPostReq = {
+    user_id: userId,
+    post_id: postId,
+  };
+
+  const res = await fetch(`${BASE_URL}/post/fav`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    credentials: "include",
+  });
+
+  const data = (await res.json()) as UserFlagPostResp;
+  return data;
+}
+
+/**
+ * Unfavorite post
+ * POST /post/unfav
+ */
+export async function unfavPost(postId: number): Promise<UserFlagPostResp> {
+  const userId = getUserIdFromLocalStorage();
+
+  const body: UnfavPostReq = {
+    user_id: userId,
+    post_id: postId,
+  };
+
+  const res = await fetch(`${BASE_URL}/post/unfav`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    credentials: "include",
+  });
+
+  const data = (await res.json()) as UserFlagPostResp;
+  return data;
+}

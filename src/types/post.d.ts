@@ -12,6 +12,8 @@ export interface Post {
   view_count: number;
   created_at: string;   // ISO/RFC3339 string
   updated_at: string;   // ISO/RFC3339 string
+  is_liked_by_user: boolean; //default: false
+  is_fav_by_user: boolean; //default: false
 }
 
 /* =========================
@@ -112,4 +114,37 @@ export interface GetPersonalRecentPostsResp {
   isSuccessful: boolean;
   errorMessage: string;
   posts: Post[];
+}
+
+
+
+// ========================
+// Like / Unlike / Fav / Unfav
+// ========================
+
+// 后端 Thrift: struct LikePostReq { 1: i64 user_id; 2: i64 post_id; }
+export interface LikePostReq {
+  user_id: number;
+  post_id: number;
+}
+
+export interface UnlikePostReq {
+  user_id: number;
+  post_id: number;
+}
+
+export interface FavPostReq {
+  user_id: number;
+  post_id: number;
+}
+
+export interface UnfavPostReq {
+  user_id: number;
+  post_id: number;
+}
+
+// Thrift: struct UserFlagPostResq { 1: bool isSuccessful; 2: string errorMessage; }
+export interface UserFlagPostResp {
+  isSuccessful: boolean;
+  errorMessage: string;
 }
