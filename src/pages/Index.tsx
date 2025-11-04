@@ -9,6 +9,7 @@ export default function Index() {
     navigate("/weblist");
   };
 
+
   const experiences = [
     {
       title: "Software Engineer Intern",
@@ -51,13 +52,20 @@ export default function Index() {
   return (
     <div className="container mt-5">
       <h1 className="mb-3">Hello World, I am Zetian Jin :)</h1>
+
+      <button
+        className="btn btn-dark mb-3"
+        onClick={() => navigate("/me")}
+      >
+        Go to a forum website that I am developing💬
+      </button>
+
       <button className="btn btn-primary mb-3" onClick={handleGoToWebList}>
         Go to Zetian's Favorite Websites ⭐
       </button>
       <Education educationList={educations} />
       <h2 className="mb-3">💼 Experience</h2>
       <ExperienceGroup experiences={experiences} />
-
       <footer>
         <h4>Contact</h4>
         <p>📧 <a href="mailto:skyjin0127@gmail.com">skyjin0127@gmail.com</a></p>
