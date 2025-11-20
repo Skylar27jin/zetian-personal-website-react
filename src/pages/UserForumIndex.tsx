@@ -1,350 +1,121 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { me } from "../api/meApi";
-import {
-  getPersonalRecentPosts,
-  likePost,
-  unlikePost,
-  favPost,
-  unfavPost,
-} from "../api/postApi";
-
-import type { Post } from "../types/post";
-
-import Navbar from "../components/Navbar";
-
-import { Container, Row, Col, Card, Button, Spinner, Alert } from "react-bootstrap";
+// src/pages/UserForumIndex.tsx
+import { Container, Row, Col, Button, Spinner, Alert } from "react-bootstrap";
 import { motion } from "framer-motion";
 
-const LS_KEYS = {
-  userId: "me:id",
-  email: "me:email",
-  username: "me:username",
-} as const;
+import Navbar from "../components/Navbar";
+import PostCard from "../components/PostCard";
+import { useMeAuth } from "../hooks/useMeAuth";
+import { usePersonalPosts } from "../hooks/usePersonalPosts";
 
-function saveMeToLocalStorage(id: number, email: string, username: string) {
-  localStorage.setItem(LS_KEYS.userId, String(id));
-  localStorage.setItem(LS_KEYS.email, email);
-  localStorage.setItem(LS_KEYS.username, username);
-}
-
-function readUserId(): number | null {
-  const v = localStorage.getItem(LS_KEYS.userId);
-  return v ? Number(v) : null;
-}
 
 export default function UserForumIndex() {
-  const [authLoading, setAuthLoading] = useState(true);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loadingPosts, setLoadingPosts] = useState(false);
-  const [postsError, setPostsError] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(true);
+  const { authLoading, authError, userId, username, email } = useMeAuth();
 
-  // ---------- 验证用户 ----------
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const resp = await me();
-        if (!mounted) return;
-        if (resp.is_successful) {
-          saveMeToLocalStorage(resp.id, resp.email, resp.username);
-          setAuthError(null);
-        } else {
-          setAuthError(resp.error_message || "Unauthorized");
-        }
-      } catch (e: any) {
-        setAuthError(e?.message || "Failed to call /me");
-      } finally {
-        setAuthLoading(false);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const {
+    posts,
+    loadingPosts,
+    postsError,
+    hasMore,
+    loadMore,
+    handleLike,
+    handleUnlike,
+    handleFav,
+    handleUnfav,
+    setPosts,
+    setHasMore,
+  } = usePersonalPosts(userId, !authLoading && !authError);
 
-  // ---------- 拉取帖子 ----------
-  const loadMore = useCallback(async () => {
-    const uid = readUserId();
-    if (!uid) {
-      setPostsError("No user id in localStorage. Please login first.");
-      return;
-    }
-    if (loadingPosts || !hasMore) return;
-
-    setLoadingPosts(true);
-    setPostsError(null);
-
-    const before =
-      posts.length > 0
-        ? posts[posts.length - 1].created_at
-        : new Date().toISOString();
-
-    try {
-      const resp = await getPersonalRecentPosts({
-        user_id: uid,
-        before,
-        limit: 10,
-      });
-
-      if (!resp.isSuccessful) {
-        setPostsError(resp.errorMessage || "Fetch failed");
-        setHasMore(false);
-        return;
-      }
-
-      const list = resp.posts ?? [];
-      setPosts((prev) => [...prev, ...list]);
-      if (list.length < 10) setHasMore(false);
-    } catch (e: any) {
-      setPostsError(e?.message || "Network error");
-    } finally {
-      setLoadingPosts(false);
-    }
-  }, [posts, loadingPosts, hasMore]);
-
-  useEffect(() => {
-    if (!authLoading && !authError && posts.length === 0) {
-      loadMore();
-    }
-  }, [authLoading, authError, posts.length, loadMore]);
-
-  const username = localStorage.getItem(LS_KEYS.username) || "";
-  const email = localStorage.getItem(LS_KEYS.email) || "";
-
-  // ---------- 操作函数 ----------
-  const updatePostState = (
-    postId: number,
-    updates: Partial<Post>
-  ) => {
-    setPosts((prev) =>
-      prev.map((p) => (p.id === postId ? { ...p, ...updates } : p))
-    );
-  };
-
-  const handleLike = async (postId: number) => {
-    try {
-      const resp = await likePost(postId);
-      if (!resp.isSuccessful) {
-        alert(resp.errorMessage || "Failed to like");
-        return;
-      }
-      updatePostState(postId, {
-        is_liked_by_user: true,
-        like_count: (posts.find((p) => p.id === postId)?.like_count || 0) + 1,
-      });
-    } catch (e: any) {
-      alert(e?.message || "Network error");
-    }
-  };
-
-  const handleUnlike = async (postId: number) => {
-    try {
-      const resp = await unlikePost(postId);
-      if (!resp.isSuccessful) {
-        alert(resp.errorMessage || "Failed to unlike");
-        return;
-      }
-      updatePostState(postId, {
-        is_liked_by_user: false,
-        like_count: (posts.find((p) => p.id === postId)?.like_count || 1) - 1,
-      });
-    } catch (e: any) {
-      alert(e?.message || "Network error");
-    }
-  };
-
-  const handleFav = async (postId: number) => {
-    try {
-      const resp = await favPost(postId);
-      if (!resp.isSuccessful) {
-        alert(resp.errorMessage || "Failed to favorite");
-        return;
-      }
-      updatePostState(postId, {
-        is_fav_by_user: true,
-        fav_count: (posts.find((p) => p.id === postId)?.fav_count || 0) + 1,
-      });
-    } catch (e: any) {
-      alert(e?.message || "Network error");
-    }
-  };
-
-  const handleUnfav = async (postId: number) => {
-    try {
-      const resp = await unfavPost(postId);
-      if (!resp.isSuccessful) {
-        alert(resp.errorMessage || "Failed to unfavorite");
-        return;
-      }
-      updatePostState(postId, {
-        is_fav_by_user: false,
-        fav_count: (posts.find((p) => p.id === postId)?.fav_count || 1) - 1,
-      });
-    } catch (e: any) {
-      alert(e?.message || "Network error");
-    }
-  };
-
-  function formatTime(isoString: string): string {
-    try {
-      const date = new Date(isoString);
-      // 格式化为 YYYY-MM-DD HH:mm:ss
-      return date.toISOString().slice(0, 19).replace("T", " ");
-    } catch {
-      return isoString;
-    }
-  }
-
-return (
-  <div className="bg-light min-vh-100 d-flex flex-column">
-    <Navbar />
-
-    <main className="flex-grow-1 py-4">
-      <Container className="max-w-3xl">
-        {/* Header */}
-        <header className="text-center mb-4">
-          <h1 className="fw-bold">My Forum</h1>
-
-          {authLoading && (
-            <p className="text-secondary">
-              <Spinner animation="border" size="sm" /> Verifying session…
-            </p>
-          )}
-
-          {!authLoading && authError && (
-            <Alert variant="danger">Auth failed: {authError}</Alert>
-          )}
-
-          {!authLoading && !authError && (
-            <>
-              <div className="text-muted small mb-2">
-                Signed in as <b>{username}</b> ({email})
-              </div>
-
-              {/* Create New Post 按钮加动画 */}
-              <motion.div
-                whileTap={{ scale: 1.08 }}
-                transition={{ duration: 0.12 }}
-              >
-                <Button
-                  variant="primary"
-                  onClick={() => (window.location.href = "/post/create")}
-                >
-                  + Create New Post
+  // 验证失败：显示错误 + 跳转按钮
+  if (!authLoading && authError) {
+    return (
+      <div className="bg-light min-vh-100 d-flex flex-column">
+        <Navbar />
+        <main className="flex-grow-1 py-4">
+          <Container className="max-w-3xl">
+            <header className="text-center mb-4">
+              <h1 className="fw-bold">My Forum</h1>
+              <Alert variant="danger" className="mt-3">
+                Auth failed: {authError}
+              </Alert>
+              <motion.div whileTap={{ scale: 1.08 }} transition={{ duration: 0.12 }}>
+                <Button variant="primary" onClick={() => (window.location.href = "/login")}>
+                  Go to Login
                 </Button>
               </motion.div>
-            </>
-          )}
-        </header>
+            </header>
+          </Container>
+        </main>
+      </div>
+    );
+  }
 
-        {/* 帖子列表 */}
-        <Row className="gy-4">
-          {posts.map((p) => (
-            <Col key={p.id} xs={12}>
-              <Card className="shadow-sm border-0">
-                <Card.Body>
-                  <Card.Title className="fw-semibold">{p.title}</Card.Title>
-                  <Card.Subtitle className="mb-2 text-muted small">
-                    🏫 {p.school_name} · 👁 {p.view_count} · 📅{" "}
-                    {formatTime(p.created_at)}
-                  </Card.Subtitle>
-                  <Card.Text>{p.content}</Card.Text>
+  return (
+    <div className="bg-light min-vh-100 d-flex flex-column">
+      <Navbar />
 
-                  <hr />
+      <main className="flex-grow-1 py-4">
+        <Container className="max-w-3xl">
+          {/* Header */}
+          <header className="text-center mb-4">
+            <h1 className="fw-bold">My Forum</h1>
 
-                  <Row className="align-items-center text-muted small">
-                    <Col xs="auto">
-                      👍 {p.like_count} · ⭐ {p.fav_count}
-                    </Col>
+            {authLoading && (
+              <p className="text-secondary">
+                <Spinner animation="border" size="sm" /> Verifying session…
+              </p>
+            )}
 
-                    <Col className="text-end">
-                      <div className="d-inline-flex gap-3">
-                        {/* Like：点击切换 like / unlike */}
-                        <motion.div
-                          whileTap={{ scale: 1.15 }}
-                          transition={{ duration: 0.12 }}
-                        >
-                          <Button
-                            size="sm"
-                            variant={
-                              p.is_liked_by_user
-                                ? "primary"
-                                : "outline-secondary"
-                            }
-                            onClick={() =>
-                              p.is_liked_by_user
-                                ? handleUnlike(p.id)
-                                : handleLike(p.id)
-                            }
-                          >
-                            {p.is_liked_by_user ? "💙 Liked" : "👍 Like"}
-                          </Button>
-                        </motion.div>
+            {!authLoading && (
+              <>
+                <div className="text-muted small mb-2">
+                  Signed in as <b>{username}</b> ({email})
+                </div>
 
-                        {/* Fav：点击切换 fav / unfav */}
-                        <motion.div
-                          whileTap={{ scale: 1.15 }}
-                          transition={{ duration: 0.12 }}
-                        >
-                          <Button
-                            size="sm"
-                            variant={
-                              p.is_fav_by_user
-                                ? "warning"
-                                : "outline-secondary"
-                            }
-                            onClick={() =>
-                              p.is_fav_by_user
-                                ? handleUnfav(p.id)
-                                : handleFav(p.id)
-                            }
-                          >
-                            {p.is_fav_by_user ? "🌟 Favorited" : "⭐ Fav"}
-                          </Button>
-                        </motion.div>
-                      </div>
-                    </Col>
-                  </Row>
-                </Card.Body>
-              </Card>
-            </Col>
-          ))}
+                <motion.div whileTap={{ scale: 1.08 }} transition={{ duration: 0.12 }}>
+                  <Button
+                    variant="primary"
+                    onClick={() => (window.location.href = "/post/create")}
+                  >
+                    + Create New Post
+                  </Button>
+                </motion.div>
+              </>
+            )}
+          </header>
 
-          {postsError && <Alert variant="danger">{postsError}</Alert>}
-        </Row>
+          {/* 帖子列表 */}
+          <Row className="gy-4">
+            {posts.map((p) => (
+              <Col key={p.id} xs={12}>
+                <PostCard
+                  post={p}
+                  onLike={handleLike}
+                  onUnlike={handleUnlike}
+                  onFav={handleFav}
+                  onUnfav={handleUnfav}
+                />
+              </Col>
+            ))}
 
-        {/* 分页 & 加载 */}
-        <div className="text-center mt-5">
-          <div className="d-flex justify-content-center align-items-center gap-3 flex-wrap">
-            {/* Load more 按钮加动画 */}
-            <motion.div
-              whileTap={{ scale: 1.08 }}
-              transition={{ duration: 0.12 }}
-            >
-              <Button
-                variant="dark"
-                disabled={loadingPosts || !hasMore || !!authError}
-                onClick={loadMore}
-              >
-                {loadingPosts
-                  ? "Loading…"
-                  : hasMore
-                  ? "Load more"
-                  : "No more"}
-              </Button>
-            </motion.div>
+            {postsError && <Alert variant="danger">{postsError}</Alert>}
+          </Row>
 
-            {/* Refresh 按钮加动画 */}
-            {!authLoading &&
-              !authError &&
-              posts.length === 0 &&
-              !loadingPosts && (
-                <motion.div
-                  whileTap={{ scale: 1.08 }}
-                  transition={{ duration: 0.12 }}
+
+          {/* 分页 & 加载 */}
+          <div className="text-center mt-5">
+            <div className="d-flex justify-content-center align-items-center gap-3 flex-wrap">
+              <motion.div whileTap={{ scale: 1.08 }} transition={{ duration: 0.12 }}>
+                <Button
+                  variant="dark"
+                  disabled={loadingPosts || !hasMore || authLoading}
+                  onClick={loadMore}
                 >
+                  {loadingPosts ? "Loading…" : hasMore ? "Load more" : "No more"}
+                </Button>
+              </motion.div>
+
+              {!authLoading && posts.length === 0 && !loadingPosts && (
+                <motion.div whileTap={{ scale: 1.08 }} transition={{ duration: 0.12 }}>
                   <Button
                     variant="outline-secondary"
                     onClick={() => {
@@ -358,16 +129,15 @@ return (
                 </motion.div>
               )}
 
-            <div className="text-secondary small">
-              Loaded <b>{posts.length}</b> post
-              {posts.length !== 1 ? "s" : ""}
-              {hasMore ? "" : " (all loaded)"}
+              <div className="text-secondary small">
+                Loaded <b>{posts.length}</b> post
+                {posts.length !== 1 ? "s" : ""}
+                {hasMore ? "" : " (all loaded)"}
+              </div>
             </div>
           </div>
-        </div>
-      </Container>
-    </main>
-  </div>
-);
-
+        </Container>
+      </main>
+    </div>
+  );
 }
