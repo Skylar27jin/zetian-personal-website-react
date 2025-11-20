@@ -16,7 +16,12 @@ export default function UserProfilePage() {
   const { id } = useParams<{ id: string }>();
   const targetUserId = id ? Number(id) : NaN;
 
-  const { authLoading, authError, userId: viewerId } = useMeAuth();
+  const {
+    authLoading,
+    authError,
+    userId: viewerId,
+    username,
+    } = useMeAuth();
 
   // URL 参数本身非法，直接返回错误页，不要再调接口了
   if (Number.isNaN(targetUserId)) {
@@ -90,7 +95,7 @@ export default function UserProfilePage() {
     setHasMore,
   } = usePersonalPosts(targetUserId, enabled);
 
-  
+
 
   // 用户不存在 / /user/get 失败
   if (!userLoading && userError) {
@@ -129,11 +134,17 @@ export default function UserProfilePage() {
             )}
 
             {!authLoading && !userLoading && (
-              <p className="text-muted small mb-0">
-                {isSelf
-                  ? "You are viewing your own public posts."
-                  : `You are viewing ${displayName}'s posts.`}
-              </p>
+                <p className="text-muted small mb-0">
+                {isSelf ? (
+                    "You are viewing your own public posts."
+                ) : authError ? (
+                    // 游客访问别人
+                    `You are viewing ${displayName}'s posts as a guest.`
+                ) : (
+                    // 登录用户访问别人
+                    `You are viewing ${displayName}'s posts as ${username}.`
+                )}
+                </p>
             )}
           </header>
 
