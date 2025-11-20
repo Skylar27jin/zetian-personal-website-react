@@ -15,6 +15,17 @@ export function usePersonalPosts(userId: number | null, enabled: boolean) {
   const [postsError, setPostsError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
 
+  // ✅ 只自动尝试加载一次
+  const [hasTriedInitialLoad, setHasTriedInitialLoad] = useState(false);
+
+  // 当 userId 变化时，重置列表状态（比如从 /users/1 切到 /users/2）
+  useEffect(() => {
+    setPosts([]);
+    setHasMore(true);
+    setPostsError(null);
+    setHasTriedInitialLoad(false);
+  }, [userId]);
+
   const loadMore = useCallback(async () => {
     if (!enabled) return;
     if (!userId) {
@@ -39,6 +50,7 @@ export function usePersonalPosts(userId: number | null, enabled: boolean) {
       });
 
       if (!resp.isSuccessful) {
+        // ❗失败：只报错，不再自动重试（hasTriedInitialLoad 已经是 true）
         setPostsError(resp.errorMessage || "Fetch failed");
         setHasMore(false);
         return;
@@ -54,12 +66,15 @@ export function usePersonalPosts(userId: number | null, enabled: boolean) {
     }
   }, [enabled, userId, posts, loadingPosts, hasMore]);
 
-  // 初次拉取
+  // ✅ 自动加载一次：enabled 变为 true 且没试过，并且当前列表是空的
   useEffect(() => {
-    if (enabled && posts.length === 0 && !loadingPosts) {
-      loadMore();
-    }
-  }, [enabled, posts.length, loadingPosts, loadMore]);
+    if (!enabled) return;
+    if (hasTriedInitialLoad) return;
+    if (posts.length > 0) return;
+
+    setHasTriedInitialLoad(true);
+    loadMore();
+  }, [enabled, hasTriedInitialLoad, posts.length, loadMore]);
 
   // 辅助函数
   const updatePostState = (postId: number, updates: Partial<Post>) => {

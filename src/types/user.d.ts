@@ -26,3 +26,15 @@ export interface SignUpResp {
   userName: string;
   email: string;
 }
+
+export interface GetUserReq {
+  id?: number;
+  name?: string;
+}
+
+export interface GetUserResp {
+  isSuccessful: boolean;
+  errorMessage: string;
+  userName: string;
+  id: number;
+}

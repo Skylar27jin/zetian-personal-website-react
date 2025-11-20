@@ -1,4 +1,5 @@
 // src/pages/UserForumIndex.tsx
+import { useEffect, useState } from "react";
 import { Container, Row, Col, Button, Spinner, Alert } from "react-bootstrap";
 import { motion } from "framer-motion";
 
@@ -8,7 +9,7 @@ import { useMeAuth } from "../hooks/useMeAuth";
 import { usePersonalPosts } from "../hooks/usePersonalPosts";
 
 
-export default function UserForumIndex() {
+export default function MyForumProfilePage() {
   const { authLoading, authError, userId, username, email } = useMeAuth();
 
   const {

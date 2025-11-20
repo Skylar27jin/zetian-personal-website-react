@@ -56,3 +56,31 @@ export async function signUpUser(req: SignUpReq): Promise<SignUpResp> {
   const resp = (await response.json()) as SignUpResp;
   return resp;
 }
+
+
+// ---- GetUser ----
+import type { GetUserResp } from "../types/user";
+
+/**
+ * Get user information
+ * GET /user/get?ID=xxx or ?Name=xxx
+ * returns: GetUserResp
+ */
+export async function getUser(params: { id?: number; name?: string }): Promise<GetUserResp> {
+  const usp = new URLSearchParams();
+
+  if (params.id != null) usp.set("id", String(params.id));
+  if (params.name != null) usp.set("name", params.name);
+
+  const response = await fetch(`${BASE_URL}/user/get?${usp.toString()}`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("GetUser request failed");
+  }
+
+  const resp = (await response.json()) as GetUserResp;
+  return resp;
+}

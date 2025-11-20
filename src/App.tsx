@@ -4,8 +4,9 @@ import Index from "./pages/Index";
 import GetNumOpPage from "./pages/NumOp";
 import LoginPage from "./pages/Login";
 import SignupPage from "./pages/Signup";
-import UserForumIndex from "./pages/UserForumIndex";
 import CreatePostPage from "./pages/CreatePostPage";
+import UserProfilePage from "./pages/UserForumProfilePage";
+import MyForumProfilePage from "./pages/MyForumProfilePage";
 
 function App() {
   return (
@@ -23,8 +24,10 @@ function App() {
         <Route path="/login" element={<LoginPage/>}/>
         <Route path="/signup" element={<SignupPage/>}/>
 
-        <Route path="/me" element={<UserForumIndex/>}/>
+        <Route path="/me" element={<MyForumProfilePage/>}/>
         <Route path="/post/create" element={<CreatePostPage />} />
+
+        <Route path="/user/:id" element={<UserProfilePage/>}/>
       </Routes>
     </BrowserRouter>
   );
