@@ -8,6 +8,7 @@ import CreatePostPage from "./pages/CreatePostPage";
 import UserProfilePage from "./pages/UserForumProfilePage";
 import MyForumProfilePage from "./pages/MyForumProfilePage";
 import PostDetailPage from "./pages/PostDetailPage";
+import GopherLoadingPage from "./pages/GopherLoadingPage";
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
         <Route path="/user/:id" element={<UserProfilePage/>}/>
 
         <Route path="/post/:id" element={<PostDetailPage />} />
+        <Route path="loading" element={<GopherLoadingPage/>}/>
       </Routes>
     </BrowserRouter>
   );

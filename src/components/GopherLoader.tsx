@@ -11,16 +11,22 @@ const GopherLoader: React.FC<GopherLoaderProps> = ({
   size = 96,
   fullScreen = false,
 }) => {
-  const img = (
-    <div className="gopher-loader">
-      <img
-        src="/gopher_front.png"
-        alt="Loading..."
-        className="gopher-loader__img"
-        style={{ width: size, height: size }}
-      />
+const img = (
+  <div className="gopher-loader">
+    <div className="gopher-crop">
+      <div className="gopher-align-bottom">
+        <img
+          src="/gopher_front.png"
+          alt="Loading..."
+          className="gopher-loader__img"
+        />
+      </div>
     </div>
-  );
+  </div>
+);
+
+
+
 
   if (fullScreen) {
     return (

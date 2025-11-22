@@ -9,6 +9,7 @@ import {
   Modal,
   Form,
   Badge,
+  Dropdown,
 } from "react-bootstrap";
 import { motion } from "framer-motion";
 
@@ -33,11 +34,19 @@ import GopherLoader from "../components/GopherLoader";
 function formatTime(isoString: string): string {
   try {
     const date = new Date(isoString);
-    return date.toISOString().slice(0, 19).replace("T", " ");
+    return date.toLocaleString("en-US", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    }).replace(",", "");
   } catch {
     return isoString;
   }
 }
+
 
 export default function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -476,18 +485,83 @@ export default function PostDetailPage() {
                   {post.content}
                 </div>
 
-                {/* 底部统计 */}
-                <hr className="my-4" />
-                <div className="text-muted small">
-                  👍 {post.like_count} · ⭐ {post.fav_count} · 💬{" "}
-                  {post.comment_count} · 🔁 {post.share_count}
+               {/* 底部统计 + 操作区 */}
+              <hr className="my-4" />
+
+              <div className="d-flex align-items-center text-muted small">
+
+                {/* 左侧统计 */}
+                <div>
+                  💬 {post.comment_count} · 🔁 {post.share_count}
                 </div>
 
-                {deleting && (
-                  <div className="text-danger small mt-2">
-                    <Spinner animation="border" size="sm" /> Deleting…
-                  </div>
-                )}
+                {/* 右侧按钮组 —— 用 ms-auto 推到最右边 */}
+                <div className="d-inline-flex gap-2 ms-auto align-items-center">
+
+                  {/* Like */}
+                  <motion.div whileTap={{ scale: 1.08 }}>
+                    <Button
+                      size="sm"
+                      variant={post.is_liked_by_user ? "primary" : "outline-secondary"}
+                      onClick={() =>
+                        post.is_liked_by_user ? handleUnlike(post.id) : handleLike(post.id)
+                      }
+                    >
+                      {post.is_liked_by_user ? "💙" : "👍"} ({post.like_count})
+                    </Button>
+                  </motion.div>
+
+                  {/* Fav */}
+                  <motion.div whileTap={{ scale: 1.08 }}>
+                    <Button
+                      size="sm"
+                      variant={post.is_fav_by_user ? "warning" : "outline-secondary"}
+                      onClick={() =>
+                        post.is_fav_by_user ? handleUnfav(post.id) : handleFav(post.id)
+                      }
+                    >
+                      {post.is_fav_by_user ? "🌟" : "⭐"} ({post.fav_count})
+                    </Button>
+                  </motion.div>
+
+                  {/* 三点菜单 */}
+                  {isOwner && (
+                    <Dropdown align="end">
+                      <Dropdown.Toggle
+                        as="span"
+                        bsPrefix="post-detail-toggle"
+                        className="text-muted"
+                        style={{
+                          cursor: "pointer",
+                          padding: "2px 6px",
+                          fontSize: "20px",
+                          lineHeight: "1",
+                          background: "none",
+                          border: "none",
+                          boxShadow: "none",
+                        }}
+                      >
+                        ...
+                      </Dropdown.Toggle>
+
+                      <Dropdown.Menu>
+                        <Dropdown.Item onClick={openEditModal}>
+                          ✏️ Edit
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                          className="text-danger"
+                          onClick={handleDeletePost}
+                          disabled={deleting}
+                        >
+                          🗑 Delete
+                        </Dropdown.Item>
+                      </Dropdown.Menu>
+                    </Dropdown>
+                  )}
+                </div>
+              </div>
+
+
                 {/* 如果是 reply 帖，展示原帖预览 */}
                 {post.reply_to && (
                 <div className="mb-3">
@@ -604,75 +678,6 @@ export default function PostDetailPage() {
         </Container>
       </main>
 
-      {/* 固定在页面左下角的操作栏 */}
-      {post && (
-        <div
-          className="position-fixed d-flex flex-wrap gap-2 align-items-center"
-          style={{
-            left: "24px",
-            bottom: "24px",
-            zIndex: 1050,
-          }}
-        >
-          <motion.div whileTap={{ scale: 1.08 }}>
-            <Button
-              size="sm"
-              variant={
-                post.is_liked_by_user ? "primary" : "outline-secondary"
-              }
-              onClick={() =>
-                post.is_liked_by_user
-                  ? handleUnlike(post.id)
-                  : handleLike(post.id)
-              }
-            >
-              {post.is_liked_by_user ? "💙 Liked" : "👍 Like"}
-            </Button>
-          </motion.div>
-
-          <motion.div whileTap={{ scale: 1.08 }}>
-            <Button
-              size="sm"
-              variant={
-                post.is_fav_by_user ? "warning" : "outline-secondary"
-              }
-              onClick={() =>
-                post.is_fav_by_user
-                  ? handleUnfav(post.id)
-                  : handleFav(post.id)
-              }
-            >
-              {post.is_fav_by_user ? "🌟 Favorited" : "⭐ Fav"}
-            </Button>
-          </motion.div>
-
-          {isOwner && (
-            <>
-              <motion.div whileTap={{ scale: 1.08 }}>
-                <Button
-                  size="sm"
-                  variant="outline-primary"
-                  onClick={openEditModal}
-                  disabled={deleting}
-                >
-                  ✏️ Edit
-                </Button>
-              </motion.div>
-
-              <motion.div whileTap={{ scale: 1.08 }}>
-                <Button
-                  size="sm"
-                  variant="outline-danger"
-                  onClick={handleDeletePost}
-                  disabled={deleting}
-                >
-                  {deleting ? "Deleting…" : "🗑 Delete"}
-                </Button>
-              </motion.div>
-            </>
-          )}
-        </div>
-      )}
 
       {/* Edit Modal */}
       <Modal

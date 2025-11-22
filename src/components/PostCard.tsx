@@ -25,11 +25,19 @@ interface PostCardProps {
 function formatTime(isoString: string): string {
   try {
     const date = new Date(isoString);
-    return date.toISOString().slice(0, 19).replace("T", " ");
+    return date.toLocaleString("en-US", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    }).replace(",", "");
   } catch {
     return isoString;
   }
 }
+
 
 const MAX_LINES = 6;
 
@@ -277,11 +285,13 @@ export default function PostCard({
         <hr />
 
         <Row className="align-items-center text-muted small">
-          <Col xs="12" md="6" className="mb-2 mb-md-0">
-            👍 {post.like_count} · ⭐ {post.fav_count}
-          </Col>
 
-          <Col xs="12" md="6" className="text-md-end">
+          {/* 单独显示post和fav count */}
+          {/* <Col xs="12" md="6" className="mb-2 mb-md-0">
+            👍 {post.like_count} · ⭐ {post.fav_count}
+          </Col> */}
+
+          <Col xs="12" className="text-end">
             <div className="d-inline-flex gap-2 flex-wrap justify-content-end">
               {/* Like / Fav 区域 */}
               <motion.div
@@ -290,16 +300,12 @@ export default function PostCard({
               >
                 <Button
                   size="sm"
-                  variant={
-                    post.is_liked_by_user ? "primary" : "outline-secondary"
-                  }
+                  variant={post.is_liked_by_user ? "primary" : "outline-secondary"}
                   onClick={() =>
-                    post.is_liked_by_user
-                      ? onUnlike(post.id)
-                      : onLike(post.id)
+                    post.is_liked_by_user ? onUnlike(post.id) : onLike(post.id)
                   }
                 >
-                  {post.is_liked_by_user ? "💙 Liked" : "👍 Like"}
+                  {post.is_liked_by_user ? "💙" : "👍"} ({post.like_count ?? 0})
                 </Button>
               </motion.div>
 
@@ -309,16 +315,15 @@ export default function PostCard({
               >
                 <Button
                   size="sm"
-                  variant={
-                    post.is_fav_by_user ? "warning" : "outline-secondary"
-                  }
+                  variant={post.is_fav_by_user ? "warning" : "outline-secondary"}
                   onClick={() =>
                     post.is_fav_by_user ? onUnfav(post.id) : onFav(post.id)
                   }
                 >
-                  {post.is_fav_by_user ? "🌟 Favorited" : "⭐ Fav"}
+                  {post.is_fav_by_user ? "🌟" : "⭐"} ({post.fav_count ?? 0})
                 </Button>
               </motion.div>
+
             </div>
           </Col>
         </Row>
