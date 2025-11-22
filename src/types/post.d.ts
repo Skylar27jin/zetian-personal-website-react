@@ -2,6 +2,7 @@
 export interface Post {
   id: number;
   user_id: number;
+  user_name?: string;
   school_id: number;
   school_name: string;
 

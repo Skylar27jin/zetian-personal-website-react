@@ -131,7 +131,7 @@ export default function PostCard({
         {/* 左侧：标题 */}
         <span>
           <Link
-            to={`/posts/${post.id}`}
+            to={`/post/${post.id}`}
             className="text-decoration-none text-dark"
           >
             {post.title}
@@ -230,7 +230,7 @@ export default function PostCard({
       {post.reply_to && (
         <div className="mt-2">
           <Link
-            to={`/posts/${post.reply_to}`}
+            to={`/post/${post.reply_to}`}
             className="text-muted text-decoration-none"
           >
             <div

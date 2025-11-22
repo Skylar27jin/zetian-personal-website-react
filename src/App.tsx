@@ -30,7 +30,7 @@ function App() {
 
         <Route path="/user/:id" element={<UserProfilePage/>}/>
 
-        <Route path="/posts/:id" element={<PostDetailPage />} />
+        <Route path="/post/:id" element={<PostDetailPage />} />
       </Routes>
     </BrowserRouter>
   );

@@ -415,8 +415,16 @@ export default function PostDetailPage() {
 
                 {/* meta 信息 */}
                 <div className="text-muted small mb-2">
-                  🏫 {post.school_name} · 👁 {post.view_count} · 📅{" "}
-                  {formatTime(post.created_at)}
+                  👤{" "}
+                  <Link
+                    to={`/user/${post.user_id}`}
+                    className="text-decoration-none"
+                    style={{ fontWeight: 500 }}
+                  >
+                    {post.user_name ? `@${post.user_name}` : `User #${post.user_id}`}
+                  </Link>
+                  {" · "}
+                  🏫 {post.school_name} · 👁 {post.view_count} · 📅 {formatTime(post.created_at)}
                   {post.location && <> · 📍 {post.location}</>}
                 </div>
 
@@ -485,7 +493,7 @@ export default function PostDetailPage() {
                 <div className="mb-3">
 
                     <Link
-                    to={`/posts/${post.reply_to}`}
+                    to={`/post/${post.reply_to}`}
                     className="text-decoration-none text-reset"
                     >
                     <div
