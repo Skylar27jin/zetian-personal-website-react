@@ -25,6 +25,10 @@ import {
 } from "../api/postApi";
 import type { Post, GetPostByIDResp } from "../types/post";
 
+import { Link } from "react-router-dom";
+import { getUser } from "../api/userApi";
+
+
 function formatTime(isoString: string): string {
   try {
     const date = new Date(isoString);
@@ -45,6 +49,21 @@ export default function PostDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+
+  // ========= reply_to 原帖信息 =========
+  interface ParentMeta {
+    post: Post;
+    authorName?: string;
+  }
+
+  const [parentMeta, setParentMeta] = useState<ParentMeta | null>(null);
+  const [parentLoading, setParentLoading] = useState(false);
+  const [parentExpanded, setParentExpanded] = useState(false);
+
+  const MAX_PARENT_LINES = 3;
+
+
+
   // edit 相关
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -56,6 +75,8 @@ export default function PostDetailPage() {
 
   // 删除中 loading
   const [deleting, setDeleting] = useState(false);
+
+  
 
   // URL 参数非法
   if (Number.isNaN(postId)) {
@@ -102,6 +123,65 @@ export default function PostDetailPage() {
       cancelled = true;
     };
   }, [postId]);
+
+
+  // if 当前 post 有 reply_to 时，懒加载原帖信息
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!post || !post.reply_to) {
+      setParentMeta(null);
+      setParentLoading(false);
+      return;
+    }
+
+    (async () => {
+      try {
+        setParentLoading(true);
+        setParentMeta(null);
+
+        // 1) 拉原帖
+        const resp = await getPostByID({ id: post.reply_to! });
+        if (cancelled) return;
+
+        if (!resp.isSuccessful || !resp.post) {
+          setParentMeta(null);
+          return;
+        }
+
+        const parentPost = resp.post;
+        const meta: ParentMeta = { post: parentPost };
+
+        // 2) 顺手拉一下作者名（失败就算了，用 user_id 兜底）
+        try {
+          const userResp = await getUser({ id: parentPost.user_id });
+          if (!cancelled && userResp.isSuccessful) {
+            meta.authorName = userResp.userName;
+          }
+        } catch {
+          // ignore
+        }
+
+        if (!cancelled) {
+          setParentMeta(meta);
+        }
+      } catch {
+        if (!cancelled) {
+          setParentMeta(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setParentLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [post?.reply_to, post?.id]);
+
+
 
   const isOwner = !!post && !!viewerId && post.user_id === viewerId;
 
@@ -399,6 +479,100 @@ export default function PostDetailPage() {
                     <Spinner animation="border" size="sm" /> Deleting…
                   </div>
                 )}
+                {/* 如果是 reply 帖，展示原帖预览 */}
+                {post.reply_to && (
+                <div className="mb-3">
+
+                    <Link
+                    to={`/post/${post.reply_to}`}
+                    className="text-decoration-none text-reset"
+                    >
+                    <div
+                        className="p-3 rounded-3"
+                        style={{
+                        backgroundColor: "#f5f5f5",
+                        borderLeft: "3px solid #d0d0d0",
+                        }}
+                    >
+                        {parentLoading && !parentMeta && (
+                        <div className="text-muted small">
+                            <Spinner animation="border" size="sm" /> Loading original post…
+                        </div>
+                        )}
+                        <div className="text-muted small mb-1 text-uppercase">
+                            Replying to
+                        </div>
+                        {!parentLoading && parentMeta && (
+                        <>
+                            {/* 作者 + 时间 */}
+                            <div className="d-flex justify-content-between align-items-center mb-1">
+                            <div className="fw-semibold">
+                                {parentMeta.authorName
+                                ? `@${parentMeta.authorName}`
+                                : `User #${parentMeta.post.user_id}`}
+                            </div>
+                            <div className="text-muted small">
+                                {formatTime(parentMeta.post.created_at)}
+                            </div>
+                            </div>
+
+                            {/* 标题 */}
+                            <div className="fw-semibold mb-1">
+                            {parentMeta.post.title}
+                            </div>
+
+                            {/* 正文（最多 3 行，可展开） */}
+                            <div
+                            className="text-muted"
+                            style={{ whiteSpace: "pre-wrap", fontSize: "0.9rem" }}
+                            >
+                            {(() => {
+                                const full = parentMeta.post.content || "";
+                                const lines = full.split("\n");
+                                const isLong = lines.length > MAX_PARENT_LINES;
+
+                                if (!isLong) return full;
+
+                                const sliced = lines.slice(0, MAX_PARENT_LINES).join("\n");
+
+                                return parentExpanded ? full : sliced + "\n…";
+                            })()}
+                            </div>
+
+                            {(() => {
+                            const full = parentMeta.post.content || "";
+                            const lines = full.split("\n");
+                            const isLong = lines.length > MAX_PARENT_LINES;
+
+                            return (
+                                isLong && (
+                                <Button
+                                    variant="link"
+                                    size="sm"
+                                    className="p-0 mt-1"
+                                    onClick={(e) => {
+                                    e.preventDefault(); // 展开时不要触发 Link 跳转
+                                    setParentExpanded((v) => !v);
+                                    }}
+                                >
+                                    {parentExpanded ? "Show less" : "Show full original post"}
+                                </Button>
+                                )
+                            );
+                            })()}
+                        </>
+                        )}
+
+                        {/* 原帖没拉到的兜底文案 */}
+                        {!parentLoading && !parentMeta && (
+                        <div className="text-muted small fst-italic">
+                            Original post not found (maybe deleted).
+                        </div>
+                        )}
+                    </div>
+                    </Link>
+                </div>
+                )}
               </section>
 
               {/* 右侧：评论区域占位 */}
@@ -545,3 +719,5 @@ export default function PostDetailPage() {
     </div>
   );
 }
+
+
