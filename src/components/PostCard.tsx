@@ -224,25 +224,7 @@ export default function PostCard({
           </div>
         )}
 
-        {/* 如果是回复某个帖子，在卡片底部显示被回复对象 */}
-              {/* 内容区：支持换行 + 折叠 */}
-      <Card.Text style={{ whiteSpace: "pre-wrap" }}>
-        {contentToShow}
-        {isLong && !expanded && " …"}
-      </Card.Text>
 
-      {isLong && (
-        <div className="mb-2">
-          <Button
-            variant="link"
-            size="sm"
-            className="p-0"
-            onClick={() => setExpanded((e) => !e)}
-          >
-            {expanded ? "Show less" : "Show more"}
-          </Button>
-        </div>
-      )}
 
       {/* 如果是回复某个帖子，在卡片底部显示被回复对象 */}
       {post.reply_to && (
