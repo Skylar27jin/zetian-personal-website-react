@@ -10,6 +10,7 @@ import { useMeAuth } from "../hooks/useMeAuth";
 import { usePersonalPosts } from "../hooks/usePersonalPosts";
 import { getUser } from "../api/userApi";
 import type { GetUserResp } from "../types/user";
+import GopherLoader from "../components/GopherLoader";
 
 export default function UserProfilePage() {
   // URL: /users/:id
@@ -96,7 +97,6 @@ export default function UserProfilePage() {
   } = usePersonalPosts(targetUserId, enabled);
 
 
-
   // 用户不存在 / /user/get 失败
   if (!userLoading && userError) {
     return (
@@ -110,11 +110,54 @@ export default function UserProfilePage() {
       </div>
     );
   }
+    // 用户信息正在加载 → 显示内容区 gopher
+  if (userLoading && posts.length === 0) {
+    return (
+      <div className="bg-light min-vh-100 d-flex flex-column">
+        <Navbar />
+        <main className="flex-grow-1 py-4">
+          <Container className="max-w-3xl">
+            <header className="mb-4">
+              <h1 className="fw-bold">User Profile</h1>
+            </header>
+
+            <div className="d-flex justify-content-center py-5">
+              <GopherLoader />
+            </div>
+          </Container>
+        </main>
+      </div>
+    );
+  }
 
   const isSelf = viewerId === targetUserId;
   const displayName =
     profileUser?.userName || `User #${targetUserId}`;
 
+
+    // 帖子首次加载中（用户信息已加载完成）
+  if (!userLoading && profileUser && loadingPosts && posts.length === 0) {
+    return (
+      <div className="bg-light min-vh-100 d-flex flex-column">
+        <Navbar />
+        <main className="flex-grow-1 py-4">
+          <Container className="max-w-3xl">
+            <header className="mb-4">
+              <h1 className="fw-bold">
+                {viewerId === targetUserId
+                  ? "My Public Profile"
+                  : `${displayName}'s Posts`}
+              </h1>
+            </header>
+
+            <div className="d-flex justify-content-center py-5">
+              <GopherLoader />
+            </div>
+          </Container>
+        </main>
+      </div>
+    );
+  }
   return (
     <div className="bg-light min-vh-100 d-flex flex-column">
       <Navbar />
@@ -176,8 +219,14 @@ export default function UserProfilePage() {
                 >
                   {loadingPosts ? "Loading…" : hasMore ? "Load more" : "No more"}
                 </Button>
-              </motion.div>
 
+              </motion.div>
+              {/* 加载更多时的小号 gopher */}
+              {loadingPosts && posts.length > 0 && (
+                <div style={{ minWidth: 72 }}>
+                  <GopherLoader size={56} />
+                </div>
+              )}
               {!authLoading &&
                 !userLoading &&
                 posts.length === 0 &&
@@ -207,5 +256,9 @@ export default function UserProfilePage() {
         </Container>
       </main>
     </div>
+
+
+
   );
+  
 }

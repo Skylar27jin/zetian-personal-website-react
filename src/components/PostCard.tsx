@@ -31,7 +31,7 @@ function formatTime(isoString: string): string {
   }
 }
 
-const MAX_LINES = 10;
+const MAX_LINES = 6;
 
 export default function PostCard({
   post,

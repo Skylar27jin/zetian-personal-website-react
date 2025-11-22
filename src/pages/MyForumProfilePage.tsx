@@ -1,4 +1,4 @@
-// src/pages/UserForumIndex.tsx
+// src/pages/MyForumProfilePage.tsx
 import { useState, useEffect } from "react";
 import {
   Container,
@@ -18,7 +18,7 @@ import { useMeAuth } from "../hooks/useMeAuth";
 import { usePersonalPosts } from "../hooks/usePersonalPosts";
 import { deletePost, editPost } from "../api/postApi";
 import type { Post } from "../types/post";
-
+import GopherLoader from "../components/GopherLoader";
 export default function MyForumProfilePage() {
   const { authLoading, authError, userId, username, email } = useMeAuth();
 
@@ -140,6 +140,30 @@ export default function MyForumProfilePage() {
     );
   }
 
+  if (loadingPosts && posts.length === 0 && isLoggedIn) {
+    return (
+      <div className="bg-light min-vh-100 d-flex flex-column">
+        <Navbar />
+        <main className="flex-grow-1 py-4">
+          <Container className="max-w-3xl">
+            <header className="text-center mb-4">
+              <h1 className="fw-bold">My Forum</h1>
+
+              {!authLoading && userId && (
+                <div className="text-muted small mb-2">
+                  Signed in as <b>{username}</b> ({email})
+                </div>
+              )}
+            </header>
+
+            <div className="d-flex justify-content-center py-5">
+              <GopherLoader />
+            </div>
+          </Container>
+        </main>
+      </div>
+    );
+  }
   // 打开编辑弹窗
   const openEditModal = (post: Post) => {
     if (!userId || userId !== post.user_id) return;
@@ -303,6 +327,12 @@ export default function MyForumProfilePage() {
                 </Button>
               </motion.div>
 
+              {loadingPosts && posts.length > 0 && (
+                <div style={{ minWidth: 72 }}>
+                  <GopherLoader size={56} />
+                </div>
+              )}
+              
               {!authLoading && posts.length === 0 && !loadingPosts && (
                 <motion.div
                   whileTap={{ scale: 1.08 }}

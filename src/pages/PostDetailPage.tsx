@@ -27,6 +27,7 @@ import type { Post, GetPostByIDResp } from "../types/post";
 
 import { Link } from "react-router-dom";
 import { getUser } from "../api/userApi";
+import GopherLoader from "../components/GopherLoader";
 
 
 function formatTime(isoString: string): string {
@@ -383,8 +384,8 @@ export default function PostDetailPage() {
 
           {/* loading / error */}
           {loading && (
-            <div className="my-4 text-center">
-              <Spinner animation="border" /> Loading post…
+            <div className="my-4 d-flex justify-content-center py-5">
+              <GopherLoader />
             </div>
           )}
 
@@ -484,7 +485,7 @@ export default function PostDetailPage() {
                 <div className="mb-3">
 
                     <Link
-                    to={`/post/${post.reply_to}`}
+                    to={`/posts/${post.reply_to}`}
                     className="text-decoration-none text-reset"
                     >
                     <div
@@ -495,9 +496,10 @@ export default function PostDetailPage() {
                         }}
                     >
                         {parentLoading && !parentMeta && (
-                        <div className="text-muted small">
-                            <Spinner animation="border" size="sm" /> Loading original post…
-                        </div>
+                          <div className="text-muted small d-flex align-items-center gap-2">
+                            <GopherLoader size={40} />
+                            <span>Loading original post…</span>
+                          </div>
                         )}
                         <div className="text-muted small mb-1 text-uppercase">
                             Replying to
