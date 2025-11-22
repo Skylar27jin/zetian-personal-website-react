@@ -424,7 +424,7 @@ export default function PostDetailPage() {
 
                 {/* meta 信息 */}
                 <div className="text-muted small mb-2">
-                  👤{" "}
+                  {" "}
                   <Link
                     to={`/user/${post.user_id}`}
                     className="text-decoration-none"
@@ -433,7 +433,9 @@ export default function PostDetailPage() {
                     {post.user_name ? `@${post.user_name}` : `User #${post.user_id}`}
                   </Link>
                   {" · "}
-                  🏫 {post.school_name} · 👁 {post.view_count} · 📅 {formatTime(post.created_at)}
+                  {formatTime(post.created_at)}
+                  {" · "}
+                  🏫 {post.school_name}
                   {post.location && <> · 📍 {post.location}</>}
                 </div>
 
@@ -492,7 +494,7 @@ export default function PostDetailPage() {
 
                 {/* 左侧统计 */}
                 <div>
-                  💬 {post.comment_count} · 🔁 {post.share_count}
+                  💬 {post.comment_count} · 🔁 {post.share_count} · 👁 {post.view_count}
                 </div>
 
                 {/* 右侧按钮组 —— 用 ms-auto 推到最右边 */}

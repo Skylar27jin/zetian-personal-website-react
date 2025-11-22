@@ -146,15 +146,26 @@ export default function PostCard({
           </Link>
         </span>
 
-        {/* 右侧：三个点 + Me Badge */}
-        <div className="d-flex align-items-center gap-2">
-          {isOwner && (
+      <div className="d-flex align-items-center gap-2">
+
+        {/* 如果不是作者，显示 @username */}
+        {!isOwner && (
+          <Link
+            to={`/user/${post.user_id}`}
+            className="text-decoration-none"
+            style={{ fontSize: "0.9rem", fontWeight: 600 }}
+          >
+            @{post.user_name || `user${post.user_id}`}
+          </Link>
+        )}
+
+        {/* 如果是作者，显示 Me + 三点菜单 */}
+        {isOwner && (
+          <>
             <Badge bg="secondary" className="py-1 px-2">
               Me
             </Badge>
-          )}
 
-          {isOwner && (
             <Dropdown align="end">
               <Dropdown.Toggle
                 as="span"
@@ -174,28 +185,22 @@ export default function PostCard({
               </Dropdown.Toggle>
 
               <Dropdown.Menu>
-                <Dropdown.Item onClick={() => onEdit?.(post)}>
-                  ✏️ Edit
-                </Dropdown.Item>
+                <Dropdown.Item onClick={() => onEdit?.(post)}>✏️ Edit</Dropdown.Item>
                 <Dropdown.Item
                   className="text-danger"
                   onClick={() => onDelete?.(post)}
                 >
                   🗑 Delete
                 </Dropdown.Item>
-                <></>
               </Dropdown.Menu>
             </Dropdown>
-          )}
-        </div>
+          </>
+        )}
+      </div>
+
       </Card.Title>
 
 
-        <Card.Subtitle className="mb-2 text-muted small">
-          🏫 {post.school_name} · 👁 {post.view_count} · 📅{" "}
-          {formatTime(post.created_at)}
-          {post.location && <> · 📍 {post.location}</>}
-        </Card.Subtitle>
 
         {/* tags */}
         {post.tags && post.tags.length > 0 && (
@@ -284,49 +289,43 @@ export default function PostCard({
 
         <hr />
 
-        <Row className="align-items-center text-muted small">
+      {/* meta + 操作区 同一行 */}
+      <div className="d-flex align-items-center text-muted small mb-2">
+        {/* 左侧：meta 信息 */}
+        <div className="flex-grow-1">
+          🏫 {post.school_name} · 👁 {post.view_count} ·{" "}
+          {formatTime(post.created_at)}
+          {post.location && <> · 📍 {post.location}</>}
+        </div>
 
-          {/* 单独显示post和fav count */}
-          {/* <Col xs="12" md="6" className="mb-2 mb-md-0">
-            👍 {post.like_count} · ⭐ {post.fav_count}
-          </Col> */}
+        {/* 右侧：like / fav 按钮 */}
+        <div className="d-inline-flex gap-2 flex-shrink-0">
+          <motion.div whileTap={{ scale: 1.15 }} transition={{ duration: 0.12 }}>
+            <Button
+              size="sm"
+              variant={post.is_liked_by_user ? "primary" : "outline-secondary"}
+              onClick={() =>
+                post.is_liked_by_user ? onUnlike(post.id) : onLike(post.id)
+              }
+            >
+              {post.is_liked_by_user ? "💙" : "👍"} ({post.like_count ?? 0})
+            </Button>
+          </motion.div>
 
-          <Col xs="12" className="text-end">
-            <div className="d-inline-flex gap-2 flex-wrap justify-content-end">
-              {/* Like / Fav 区域 */}
-              <motion.div
-                whileTap={{ scale: 1.15 }}
-                transition={{ duration: 0.12 }}
-              >
-                <Button
-                  size="sm"
-                  variant={post.is_liked_by_user ? "primary" : "outline-secondary"}
-                  onClick={() =>
-                    post.is_liked_by_user ? onUnlike(post.id) : onLike(post.id)
-                  }
-                >
-                  {post.is_liked_by_user ? "💙" : "👍"} ({post.like_count ?? 0})
-                </Button>
-              </motion.div>
+          <motion.div whileTap={{ scale: 1.15 }} transition={{ duration: 0.12 }}>
+            <Button
+              size="sm"
+              variant={post.is_fav_by_user ? "warning" : "outline-secondary"}
+              onClick={() =>
+                post.is_fav_by_user ? onUnfav(post.id) : onFav(post.id)
+              }
+            >
+              {post.is_fav_by_user ? "🌟" : "⭐"} ({post.fav_count ?? 0})
+            </Button>
+          </motion.div>
+        </div>
+      </div>
 
-              <motion.div
-                whileTap={{ scale: 1.15 }}
-                transition={{ duration: 0.12 }}
-              >
-                <Button
-                  size="sm"
-                  variant={post.is_fav_by_user ? "warning" : "outline-secondary"}
-                  onClick={() =>
-                    post.is_fav_by_user ? onUnfav(post.id) : onFav(post.id)
-                  }
-                >
-                  {post.is_fav_by_user ? "🌟" : "⭐"} ({post.fav_count ?? 0})
-                </Button>
-              </motion.div>
-
-            </div>
-          </Col>
-        </Row>
       </Card.Body>
     </Card>
   );
