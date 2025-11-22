@@ -22,7 +22,9 @@ import type { Post } from "../types/post";
 export default function MyForumProfilePage() {
   const { authLoading, authError, userId, username, email } = useMeAuth();
 
-  const enabled = !authLoading && !authError && !!userId;
+  const isLoggedIn = !!userId && !authError;
+  const safeUserId = userId ?? 0;
+  const enabled = !authLoading && isLoggedIn;
 
   const {
     posts,
@@ -36,7 +38,7 @@ export default function MyForumProfilePage() {
     handleUnfav,
     setPosts,
     setHasMore,
-  } = usePersonalPosts(userId, enabled);
+  } = usePersonalPosts(safeUserId, enabled);
 
   // 统一的 action 错误反馈（edit/delete）
   const [actionError, setActionError] = useState<string | null>(null);
@@ -53,7 +55,32 @@ export default function MyForumProfilePage() {
   const [deleteButtonEnabled, setDeleteButtonEnabled] = useState(false);
   const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
 
-  // 验证失败：显示错误 + 跳转按钮
+  // ⚠️ 所有 Hook（包括 useEffect）都在组件顶部调用，不能放在 return 之后
+  useEffect(() => {
+    if (!confirmDeletePost) return;
+
+    setDeleteCountdown(5);
+    setDeleteButtonEnabled(false);
+
+    const timerId = window.setInterval(() => {
+      setDeleteCountdown((prev) => {
+        if (prev <= 1) {
+          window.clearInterval(timerId);
+          setDeleteButtonEnabled(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      window.clearInterval(timerId);
+    };
+  }, [confirmDeletePost]);
+
+  // ======= 下面才是各种条件 return（不再夹着 Hook 了）=======
+
+  // 鉴权失败
   if (!authLoading && authError) {
     return (
       <div className="bg-light min-vh-100 d-flex flex-column">
@@ -64,6 +91,36 @@ export default function MyForumProfilePage() {
               <h1 className="fw-bold">My Forum</h1>
               <Alert variant="danger" className="mt-3">
                 Auth failed: {authError}
+              </Alert>
+              <motion.div
+                whileTap={{ scale: 1.08 }}
+                transition={{ duration: 0.12 }}
+              >
+                <Button
+                  variant="primary"
+                  onClick={() => (window.location.href = "/login")}
+                >
+                  Go to Login
+                </Button>
+              </motion.div>
+            </header>
+          </Container>
+        </main>
+      </div>
+    );
+  }
+
+  // 未登录但也没有报错（guest）
+  if (!authLoading && !authError && !userId) {
+    return (
+      <div className="bg-light min-vh-100 d-flex flex-column">
+        <Navbar />
+        <main className="flex-grow-1 py-4">
+          <Container className="max-w-3xl">
+            <header className="text-center mb-4">
+              <h1 className="fw-bold">My Forum</h1>
+              <Alert variant="info" className="mt-3">
+                You are not logged in. Please log in to view your posts.
               </Alert>
               <motion.div
                 whileTap={{ scale: 1.08 }}
@@ -130,29 +187,6 @@ export default function MyForumProfilePage() {
     setConfirmDeletePost(post);
   };
 
-  // 当 confirmDeletePost 变化（打开弹窗）时，启动 5 秒倒计时
-  useEffect(() => {
-    if (!confirmDeletePost) return;
-
-    setDeleteCountdown(5);
-    setDeleteButtonEnabled(false);
-
-    const timerId = window.setInterval(() => {
-      setDeleteCountdown((prev) => {
-        if (prev <= 1) {
-          window.clearInterval(timerId);
-          setDeleteButtonEnabled(true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => {
-      window.clearInterval(timerId);
-    };
-  }, [confirmDeletePost]);
-
   // 真正执行删除
   const handleConfirmDeletePost = async () => {
     if (!confirmDeletePost || !userId || userId !== confirmDeletePost.user_id) {
@@ -200,7 +234,7 @@ export default function MyForumProfilePage() {
               </p>
             )}
 
-            {!authLoading && (
+            {!authLoading && userId && (
               <>
                 <div className="text-muted small mb-2">
                   Signed in as <b>{username}</b> ({email})
@@ -242,6 +276,11 @@ export default function MyForumProfilePage() {
                   onEdit={openEditModal}
                   onDelete={requestDeletePost}
                 />
+                {deletingPostId === p.id && (
+                  <div className="text-danger small mt-1">
+                    <Spinner animation="border" size="sm" /> Deleting…
+                  </div>
+                )}
               </Col>
             ))}
 
