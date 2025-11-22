@@ -7,6 +7,7 @@ import SignupPage from "./pages/Signup";
 import CreatePostPage from "./pages/CreatePostPage";
 import UserProfilePage from "./pages/UserForumProfilePage";
 import MyForumProfilePage from "./pages/MyForumProfilePage";
+import PostDetailPage from "./pages/PostDetailPage";
 
 function App() {
   return (
@@ -28,6 +29,8 @@ function App() {
         <Route path="/post/create" element={<CreatePostPage />} />
 
         <Route path="/user/:id" element={<UserProfilePage/>}/>
+
+        <Route path="/posts/:id" element={<PostDetailPage />} />
       </Routes>
     </BrowserRouter>
   );

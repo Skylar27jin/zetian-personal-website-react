@@ -1,20 +1,40 @@
-// src/types/post.d.ts
-
 /** Core post data returned by backend (mirrors thrift.Post) */
 export interface Post {
   id: number;
   user_id: number;
   school_id: number;
   school_name: string;
+
   title: string;
   content: string;
-  like_count: number;   // computed on server side
-  fav_count: number;    // computed on server side
+
+  // optional metadata
+  location?: string | null;      // where is the post created
+  tags?: string[];               // hashtags
+
+  // media
+  media_type: string;            // "text" / "image" / "video"
+  media_urls: string[];          // 图片、视频 URL 列表
+
+  // reply
+  reply_to?: number | null;      // reply to what post id
+
+  // timestamps (RFC3339 / ISO8601 string)
+  created_at: string;
+  updated_at: string;
+
+  // user interaction flags (for current viewer)
+  is_liked_by_user: boolean;     // default: false
+  is_fav_by_user: boolean;       // default: false
+
+  // counters (computed on server side / stats table)
+  like_count: number;
+  fav_count: number;
   view_count: number;
-  created_at: string;   // ISO/RFC3339 string
-  updated_at: string;   // ISO/RFC3339 string
-  is_liked_by_user: boolean; //default: false
-  is_fav_by_user: boolean; //default: false
+  comment_count: number;
+  share_count: number;
+  last_comment_at: number;       // unix timestamp (int64)
+  hot_score: number;             // sort score for hot posts
 }
 
 /* =========================
@@ -29,7 +49,7 @@ export interface GetPostByIDReq {
 export interface GetPostByIDResp {
   isSuccessful: boolean;
   errorMessage: string;
-  post: Post | null;
+  post: Post | null; // thrift: optional Post
 }
 
 /* =========================
@@ -42,6 +62,13 @@ export interface CreatePostReq {
   school_id: number;
   title: string;
   content: string;
+
+  // optional fields, backend有默认值
+  location?: string;
+  tags?: string[];
+  media_type?: string;      // 前端不填时后端默认 "text"
+  media_urls?: string[];    // 前端不填时后端可默认 []
+  reply_to?: number;        // 回复某个帖子时带上
 }
 
 export interface CreatePostResp {
@@ -59,6 +86,7 @@ export interface EditPostReq {
   id: number;
   title?: string;
   content?: string;
+  // 如需以后支持改 media / tags，可以再往这里加
 }
 
 export interface EditPostResp {
@@ -97,7 +125,8 @@ export interface GetSchoolRecentPostsResp {
   isSuccessful: boolean;
   errorMessage: string;
   posts: Post[];
-  // optionally you can extend later with: oldestTime?: string
+  // thrift 里有 oldestTime: min(posts.created_at)
+  oldestTime?: string;
 }
 
 /* ==================================
@@ -117,30 +146,27 @@ export interface GetPersonalRecentPostsResp {
   posts: Post[];
 }
 
+/* ========================
+   Like / Unlike / Fav / Unfav
+   ======================== */
+/**
+ * 注意：后端现在只信 JWT 里的 user_id，
+ * 这里的请求体只需要 post_id 就行。
+ */
 
-
-// ========================
-// Like / Unlike / Fav / Unfav
-// ========================
-
-// 后端 Thrift: struct LikePostReq { 1: i64 user_id; 2: i64 post_id; }
 export interface LikePostReq {
-  user_id: number;
   post_id: number;
 }
 
 export interface UnlikePostReq {
-  user_id: number;
   post_id: number;
 }
 
 export interface FavPostReq {
-  user_id: number;
   post_id: number;
 }
 
 export interface UnfavPostReq {
-  user_id: number;
   post_id: number;
 }
 

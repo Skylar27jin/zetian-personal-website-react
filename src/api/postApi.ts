@@ -1,4 +1,3 @@
-// src/api/postApi.ts
 import type {
   // core data
   Post,
@@ -21,6 +20,7 @@ import type {
 
   GetPersonalRecentPostsReq,
   GetPersonalRecentPostsResp,
+
   LikePostReq,
   UnlikePostReq,
   FavPostReq,
@@ -66,52 +66,42 @@ async function postJSON<T>(url: string, body: unknown): Promise<T> {
   return (await res.json()) as T;
 }
 
-/**
- * GetPostByID
- * GET /post/get
- * query: { id }
- */
+/* ================================
+   GetPostByID (GET)
+   ================================ */
 export async function getPostByID(req: GetPostByIDReq): Promise<GetPostByIDResp> {
   const url = `${BASE_URL}/post/get${buildQuery({ id: req.id })}`;
   return getJSON<GetPostByIDResp>(url);
 }
 
-/**
- * CreatePost
- * POST /post/create
- * body: { user_id, school_id, title, content }
- */
+/* ================================
+   CreatePost (POST)
+   now supports media + tags + location
+   ================================ */
 export async function createPost(req: CreatePostReq): Promise<CreatePostResp> {
   const url = `${BASE_URL}/post/create`;
   return postJSON<CreatePostResp>(url, req);
 }
 
-/**
- * EditPost
- * POST /post/edit
- * body: { id, title?, content? }
- */
+/* ================================
+   EditPost (POST)
+   ================================ */
 export async function editPost(req: EditPostReq): Promise<EditPostResp> {
   const url = `${BASE_URL}/post/edit`;
   return postJSON<EditPostResp>(url, req);
 }
 
-/**
- * DeletePost
- * POST /post/delete
- * body: { id }
- */
+/* ================================
+   DeletePost (POST)
+   ================================ */
 export async function deletePost(req: DeletePostReq): Promise<DeletePostResp> {
   const url = `${BASE_URL}/post/delete`;
   return postJSON<DeletePostResp>(url, req);
 }
 
-/**
- * GetSchoolRecentPosts
- * GET /post/school/recent
- * query: { school_id, before, limit }
- * - `before` should be RFC3339/RFC3339Nano string (e.g., new Date().toISOString())
- */
+/* ================================
+   GetSchoolRecentPosts (GET)
+   ================================ */
 export async function getSchoolRecentPosts(
   req: GetSchoolRecentPostsReq
 ): Promise<GetSchoolRecentPostsResp> {
@@ -123,12 +113,9 @@ export async function getSchoolRecentPosts(
   return getJSON<GetSchoolRecentPostsResp>(url);
 }
 
-/**
- * GetPersonalRecentPosts
- * GET /post/personal
- * query: { user_id, before, limit }
- * - `before` should be RFC3339/RFC3339Nano string (e.g., new Date().toISOString())
- */
+/* ================================
+   GetPersonalRecentPosts (GET)
+   ================================ */
 export async function getPersonalRecentPosts(
   req: GetPersonalRecentPostsReq
 ): Promise<GetPersonalRecentPostsResp> {
@@ -140,126 +127,36 @@ export async function getPersonalRecentPosts(
   return getJSON<GetPersonalRecentPostsResp>(url);
 }
 
-/* ============================
-   TODO (not implemented yet)
-   - get feed with like/fav meta
-   - batch get by ids
-   - cursor-based pagination helpers
-   ============================ */
-
-const LS_KEYS = {
-  userId: "me:id",
-} as const;
-
-// ========================
-// Like / Unlike / Fav / Unfav
-// ========================
+/* ========================
+   Like / Unlike / Fav / Unfav
+   ======================== */
 
 /**
- * Helper to read user_id from localStorage.
- * Throws if user is not logged in.
+ * Note:
+ * 后端 *只信 JWT*，所以这里不再发送 user_id。
+ * 请求体只需要 { post_id }
  */
-function getUserIdFromLocalStorage(): number {
-  const raw = localStorage.getItem(LS_KEYS.userId);
-  if (!raw) {
-    throw new Error("You must be logged in to perform this action.");
-  }
-  const num = Number(raw);
-  if (Number.isNaN(num)) {
-    throw new Error("Invalid user id in localStorage.");
-  }
-  return num;
-}
 
-/**
- * Like post
- * POST /post/like
- * body: { user_id, post_id }
- */
+/** Like */
 export async function likePost(postId: number): Promise<UserFlagPostResp> {
-  const userId = getUserIdFromLocalStorage();
-
-  const body: LikePostReq = {
-    user_id: userId,
-    post_id: postId,
-  };
-
-  const res = await fetch(`${BASE_URL}/post/like`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    credentials: "include", // send cookies (JWT)
-  });
-
-  const data = (await res.json()) as UserFlagPostResp;
-  return data;
+  const body: LikePostReq = { post_id: postId };
+  return postJSON<UserFlagPostResp>(`${BASE_URL}/post/like`, body);
 }
 
-/**
- * Unlike post
- * POST /post/unlike
- */
+/** Unlike */
 export async function unlikePost(postId: number): Promise<UserFlagPostResp> {
-  const userId = getUserIdFromLocalStorage();
-
-  const body: UnlikePostReq = {
-    user_id: userId,
-    post_id: postId,
-  };
-
-  const res = await fetch(`${BASE_URL}/post/unlike`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    credentials: "include",
-  });
-
-  const data = (await res.json()) as UserFlagPostResp;
-  return data;
+  const body: UnlikePostReq = { post_id: postId };
+  return postJSON<UserFlagPostResp>(`${BASE_URL}/post/unlike`, body);
 }
 
-/**
- * Favorite post
- * POST /post/fav
- */
+/** Favorite */
 export async function favPost(postId: number): Promise<UserFlagPostResp> {
-  const userId = getUserIdFromLocalStorage();
-
-  const body: FavPostReq = {
-    user_id: userId,
-    post_id: postId,
-  };
-
-  const res = await fetch(`${BASE_URL}/post/fav`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    credentials: "include",
-  });
-
-  const data = (await res.json()) as UserFlagPostResp;
-  return data;
+  const body: FavPostReq = { post_id: postId };
+  return postJSON<UserFlagPostResp>(`${BASE_URL}/post/fav`, body);
 }
 
-/**
- * Unfavorite post
- * POST /post/unfav
- */
+/** Unfavorite */
 export async function unfavPost(postId: number): Promise<UserFlagPostResp> {
-  const userId = getUserIdFromLocalStorage();
-
-  const body: UnfavPostReq = {
-    user_id: userId,
-    post_id: postId,
-  };
-
-  const res = await fetch(`${BASE_URL}/post/unfav`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    credentials: "include",
-  });
-
-  const data = (await res.json()) as UserFlagPostResp;
-  return data;
+  const body: UnfavPostReq = { post_id: postId };
+  return postJSON<UserFlagPostResp>(`${BASE_URL}/post/unfav`, body);
 }
