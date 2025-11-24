@@ -1,0 +1,144 @@
+/* 彩虹流动按钮：默认整块渐变，hover 时变成只有边框在流动 */
+.btn-gradient-animated {
+  position: relative;
+  overflow: hidden;            /* 让伪元素边框别溢出 */
+  border-radius: 999px;
+  border: none;
+  padding: 0.45rem 1.2rem;
+  font-weight: 600;
+  color: #fff !important;
+
+  /* 默认：整块连续流动的渐变背景，颜色多一点 */
+  background-image: linear-gradient(
+    120deg,
+    #ff6a00,
+    #ff9a00,
+    #ff3e7f,
+    #f441a5,
+    #9b5cff,
+    #4facfe,
+    #00f2fe,
+    #3ae374
+  );
+  background-size: 300% 100%;
+  background-position: 0% 50%;
+  animation: gradient-fill-move 12s linear infinite;
+
+  transition:
+    color 0.25s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+/* 伪元素：用来在 hover 时画“流动边框” */
+.btn-gradient-animated::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 2px;                        /* 边框宽度 */
+  border-radius: inherit;
+  background-image: linear-gradient(
+    120deg,
+    #ff6a00,
+    #ff9a00,
+    #ff3e7f,
+    #f441a5,
+    #9b5cff,
+    #4facfe,
+    #00f2fe,
+    #3ae374
+  );
+  background-size: 300% 100%;
+  background-position: 0% 50%;
+
+  /* 用 mask 把中间“挖空”，只留下边框 */
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+
+  opacity: 0;                            /* 默认隐藏边框效果 */
+  pointer-events: none;
+  z-index: 0;
+
+  animation: gradient-border-move 4s linear infinite;
+  transition: opacity 0.25s ease;
+}
+
+/* 确保文字在伪元素之上 */
+.btn-gradient-animated > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* 默认整块填充的流动动画 */
+@keyframes gradient-fill-move {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* 边框流动动画（伪元素用） */
+@keyframes gradient-border-move {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* hover：中间变透明，只留边框继续流动 */
+.btn-gradient-animated:hover,
+.btn-gradient-animated:focus {
+  /* 把自身背景干掉，让中间透明，只剩下伪元素边框 */
+  background: transparent !important;
+  animation: none;                       /* 关闭本体的渐变动画 */
+  color: HotPink!important;             /* 文字颜色，可按背景调 */
+
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+
+  /* 显示伪元素的“流动边框” */
+  /* (伪元素本身仍然在跑 gradient-border-move) */
+  /* 只需要把 opacity 打开 */
+}
+
+.btn-gradient-animated:hover::before,
+.btn-gradient-animated:focus::before {
+  opacity: 1;
+}
+
+/* 按下时轻微回弹 */
+.btn-gradient-animated:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* ==== 强行干掉 Bootstrap 在这个按钮上的蓝色边框和默认 focus 样式 ==== */
+.btn.btn-gradient-animated,
+.btn.btn-gradient-animated:hover,
+.btn.btn-gradient-animated:focus,
+.btn.btn-gradient-animated:focus-visible,
+.btn.btn-gradient-animated:active,
+.btn.btn-gradient-animated:active:focus {
+  border: 0 !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 再单独给 hover 加回你想要的阴影效果 */
+.btn.btn-gradient-animated:hover {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22) !important;
+}

@@ -2,15 +2,16 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Container, Row, Col, Button, Spinner, Alert } from "react-bootstrap";
-import { motion } from "framer-motion";
 
 import Navbar from "../components/Navbar";
-import PostCard from "../components/PostCard";
 import { useMeAuth } from "../hooks/useMeAuth";
 import { usePersonalPosts } from "../hooks/usePersonalPosts";
 import { getUser } from "../api/userApi";
 import type { GetUserResp } from "../types/user";
 import GopherLoader from "../components/GopherLoader";
+import PostList from "../components/PostList";
+import { Post } from "../types/post";
+import { motion } from "framer-motion";
 
 export default function UserProfilePage() {
   // URL: /users/:id
@@ -42,7 +43,10 @@ export default function UserProfilePage() {
   const [profileUser, setProfileUser] = useState<GetUserResp | null>(null);
   const [userLoading, setUserLoading] = useState(true);
   const [userError, setUserError] = useState<string | null>(null);
-
+  
+  const handleReportPost = (post: Post) => {
+    alert(`Report feature coming soon for post #${post.id}`);
+  };
   // 先调用 /user/get，确认这个人存在，并拿到 userName
   useEffect(() => {
     let cancelled = false;
@@ -166,93 +170,81 @@ export default function UserProfilePage() {
         <Container className="max-w-3xl">
           {/* Header */}
           <header className="mb-4">
-            <h1 className="fw-bold">
-              {isSelf ? "My Public Profile" : `${displayName}'s Posts`}
-            </h1>
+            {/* 第一行：标题 + 紧挨着的小按钮（仅自己时） */}
+            <div className="d-flex align-items-center gap-2 mb-1">
+              <h1 className="fw-bold mb-0">
+                {isSelf ? "My Public Profile" : `${displayName}'s Posts`}
+              </h1>
 
+              {isSelf && (
+                <motion.div
+                  whileTap={{ scale: 1.05 }}
+                  transition={{ duration: 0.12 }}
+                >
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    className="py-0 px-2 small-button"
+                    onClick={() => (window.location.href = "/me")}
+                  >
+                    Back to My Forum
+                  </Button>
+                </motion.div>
+              )}
+            </div>
+
+            {/* 第二行：下面的小说明文字 / loading */}
             {(authLoading || userLoading) && (
-              <p className="text-secondary">
+              <p className="text-secondary mb-0">
                 <Spinner animation="border" size="sm" /> Loading…
               </p>
             )}
 
             {!authLoading && !userLoading && (
-                <p className="text-muted small mb-0">
+              <p className="text-muted small mb-0">
                 {isSelf ? (
-                    "You are viewing your own public posts."
+                  "You are viewing your own public posts."
                 ) : authError ? (
-                    // 游客访问别人
-                    `You are viewing ${displayName}'s posts as a guest.`
+                  `You are viewing ${displayName}'s posts as a guest.`
                 ) : (
-                    // 登录用户访问别人
-                    `You are viewing ${displayName}'s posts as ${username}.`
+                  `You are viewing ${displayName}'s posts as ${username}.`
                 )}
-                </p>
+              </p>
             )}
           </header>
 
           {/* 帖子列表 */}
-          <Row className="gy-4">
-            {posts.map((p) => (
-              <Col key={p.id} xs={12}>
-                <PostCard
-                  post={p}
-                  onLike={handleLike}
-                  onUnlike={handleUnlike}
-                  onFav={handleFav}
-                  onUnfav={handleUnfav}
-                />
-              </Col>
-            ))}
+          <PostList
+            posts={posts}
+            loadingPosts={loadingPosts}
+            postsError={postsError}
+            hasMore={hasMore}
+            loadMore={loadMore}
+            onRefresh={() => {
+              setPosts([]);
+              setHasMore(true);
+              setTimeout(() => loadMore(), 0);
+            }}
+            canRefresh={!authLoading && !userLoading && enabled}
 
-            {postsError && <Alert variant="danger">{postsError}</Alert>}
-          </Row>
+            onLike={handleLike}
+            onUnlike={handleUnlike}
+            onFav={handleFav}
+            onUnfav={handleUnfav}
 
-          {/* 分页 & 加载 */}
-          <div className="text-center mt-5">
-            <div className="d-flex justify-content-center align-items-center gap-3 flex-wrap">
-              <motion.div whileTap={{ scale: 1.08 }} transition={{ duration: 0.12 }}>
-                <Button
-                  variant="dark"
-                  disabled={loadingPosts || !hasMore || !enabled}
-                  onClick={loadMore}
-                >
-                  {loadingPosts ? "Loading…" : hasMore ? "Load more" : "No more"}
-                </Button>
+            // 当前 viewer（可能是自己，也可能是别人，或未登录）
+            viewerId={viewerId ?? null}
 
-              </motion.div>
-              {/* 加载更多时的小号 gopher */}
-              {loadingPosts && posts.length > 0 && (
-                <div style={{ minWidth: 72 }}>
-                  <GopherLoader size={56} />
-                </div>
-              )}
-              {!authLoading &&
-                !userLoading &&
-                posts.length === 0 &&
-                !loadingPosts &&
-                enabled && (
-                  <motion.div whileTap={{ scale: 1.08 }} transition={{ duration: 0.12 }}>
-                    <Button
-                      variant="outline-secondary"
-                      onClick={() => {
-                        setPosts([]);
-                        setHasMore(true);
-                        setTimeout(() => loadMore(), 0);
-                      }}
-                    >
-                      Refresh
-                    </Button>
-                  </motion.div>
-                )}
+            // ❗ 这里我们先不开放编辑入口
+            enableEdit={false}
+            disableLoadMore={!enabled}
 
-              <div className="text-secondary small">
-                Loaded <b>{posts.length}</b> post
-                {posts.length !== 1 ? "s" : ""}
-                {hasMore ? "" : " (all loaded)"}
-              </div>
-            </div>
-          </div>
+            // ✅ 所有人都可以举报别人（具体行为我们先用 alert 占坑）
+            onReport={handleReportPost}
+          />
+
+
+
         </Container>
       </main>
     </div>

@@ -1,9 +1,8 @@
 // src/pages/MyForumProfilePage.tsx
+import "../components/ColorfulButton.css";
 import { useState, useEffect } from "react";
 import {
   Container,
-  Row,
-  Col,
   Button,
   Spinner,
   Alert,
@@ -13,12 +12,86 @@ import {
 import { motion } from "framer-motion";
 
 import Navbar from "../components/Navbar";
-import PostCard from "../components/PostCard";
 import { useMeAuth } from "../hooks/useMeAuth";
 import { usePersonalPosts } from "../hooks/usePersonalPosts";
 import { deletePost, editPost } from "../api/postApi";
 import type { Post } from "../types/post";
 import GopherLoader from "../components/GopherLoader";
+import PostList from "../components/PostList";
+
+
+
+function MyForumHeader(props: {
+  authLoading: boolean;
+  userId?: number | null;
+  username?: string | null;
+  email?: string | null;
+  showCreateButton?: boolean;
+  onClickCreate?: () => void;
+}) {
+  const {
+    authLoading,
+    userId,
+    username,
+    email,
+    showCreateButton = false,
+    onClickCreate,
+  } = props;
+
+  return (
+    <header className="mb-4">
+      {/* 第一行：左边 My Forum + View，右边 Create */}
+      <div className="d-flex justify-content-between align-items-center mb-1">
+        {/* 左侧：My Forum + View Public Profile */}
+        <div className="d-flex align-items-center gap-2">
+          <h1 className="fw-bold mb-0">My Forum</h1>
+
+          {!authLoading && userId && (
+            <motion.div
+              whileTap={{ scale: 1.05 }}
+              transition={{ duration: 0.12 }}
+            >
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                className="py-0 px-2 small-button"
+                onClick={() =>
+                  (window.location.href = `/user/${userId}`)
+                }
+              >
+                View Public Profile
+              </Button>
+            </motion.div>
+          )}
+        </div>
+
+        {/* 右侧：Create New Post */}
+        {showCreateButton && !authLoading && userId && (
+          <motion.div
+            whileTap={{ scale: 1.08 }}
+            transition={{ duration: 0.12 }}
+          >
+            <Button
+              className="btn-gradient-animated"
+              size="lg"
+              onClick={onClickCreate}
+            >
+              + Create New Post
+            </Button>
+          </motion.div>
+        )}
+      </div>
+
+      {/* 第二行：登录信息 */}
+      {!authLoading && userId && (
+        <div className="text-muted small">
+          Signed in as <b>{username}</b>
+        </div>
+      )}
+    </header>
+  );
+}
+
 export default function MyForumProfilePage() {
   const { authLoading, authError, userId, username, email } = useMeAuth();
 
@@ -40,6 +113,11 @@ export default function MyForumProfilePage() {
     setHasMore,
   } = usePersonalPosts(safeUserId, enabled);
 
+  const handleReportPost = (post: Post) => {
+    // 先占坑，以后接后端
+    alert(`Report feature coming soon for post #${post.id}`);
+  };
+
   // 统一的 action 错误反馈（edit/delete）
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -55,7 +133,7 @@ export default function MyForumProfilePage() {
   const [deleteButtonEnabled, setDeleteButtonEnabled] = useState(false);
   const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
 
-  // ⚠️ 所有 Hook（包括 useEffect）都在组件顶部调用，不能放在 return 之后
+  // 删除倒计时
   useEffect(() => {
     if (!confirmDeletePost) return;
 
@@ -78,7 +156,7 @@ export default function MyForumProfilePage() {
     };
   }, [confirmDeletePost]);
 
-  // ======= 下面才是各种条件 return（不再夹着 Hook 了）=======
+  // ======= 条件 return =======
 
   // 鉴权失败
   if (!authLoading && authError) {
@@ -87,23 +165,28 @@ export default function MyForumProfilePage() {
         <Navbar />
         <main className="flex-grow-1 py-4">
           <Container className="max-w-3xl">
-            <header className="text-center mb-4">
-              <h1 className="fw-bold">My Forum</h1>
-              <Alert variant="danger" className="mt-3">
-                Auth failed: {authError}
-              </Alert>
-              <motion.div
-                whileTap={{ scale: 1.08 }}
-                transition={{ duration: 0.12 }}
+            <MyForumHeader
+              authLoading={authLoading}
+              userId={userId}
+              username={username}
+              email={email}
+              showCreateButton={false}
+            />
+            <Alert variant="danger" className="mt-3">
+              Auth failed: {authError}
+            </Alert>
+            <motion.div
+              whileTap={{ scale: 1.08 }}
+              transition={{ duration: 0.12 }}
+              className="mt-3"
+            >
+              <Button
+                variant="primary"
+                onClick={() => (window.location.href = "/login")}
               >
-                <Button
-                  variant="primary"
-                  onClick={() => (window.location.href = "/login")}
-                >
-                  Go to Login
-                </Button>
-              </motion.div>
-            </header>
+                Go to Login
+              </Button>
+            </motion.div>
           </Container>
         </main>
       </div>
@@ -117,45 +200,48 @@ export default function MyForumProfilePage() {
         <Navbar />
         <main className="flex-grow-1 py-4">
           <Container className="max-w-3xl">
-            <header className="text-center mb-4">
-              <h1 className="fw-bold">My Forum</h1>
-              <Alert variant="info" className="mt-3">
-                You are not logged in. Please log in to view your posts.
-              </Alert>
-              <motion.div
-                whileTap={{ scale: 1.08 }}
-                transition={{ duration: 0.12 }}
+            <MyForumHeader
+              authLoading={authLoading}
+              userId={userId}
+              username={username}
+              email={email}
+              showCreateButton={false}
+            />
+            <Alert variant="info" className="mt-3">
+              You are not logged in. Please log in to view your posts.
+            </Alert>
+            <motion.div
+              whileTap={{ scale: 1.08 }}
+              transition={{ duration: 0.12 }}
+              className="mt-3"
+            >
+              <Button
+                variant="primary"
+                onClick={() => (window.location.href = "/login")}
               >
-                <Button
-                  variant="primary"
-                  onClick={() => (window.location.href = "/login")}
-                >
-                  Go to Login
-                </Button>
-              </motion.div>
-            </header>
+                Go to Login
+              </Button>
+            </motion.div>
           </Container>
         </main>
       </div>
     );
   }
 
+  // 首次加载帖子中（已登录）
   if (loadingPosts && posts.length === 0 && isLoggedIn) {
     return (
       <div className="bg-light min-vh-100 d-flex flex-column">
         <Navbar />
         <main className="flex-grow-1 py-4">
           <Container className="max-w-3xl">
-            <header className="text-center mb-4">
-              <h1 className="fw-bold">My Forum</h1>
-
-              {!authLoading && userId && (
-                <div className="text-muted small mb-2">
-                  Signed in as <b>{username}</b> ({email})
-                </div>
-              )}
-            </header>
-
+            <MyForumHeader
+              authLoading={authLoading}
+              userId={userId}
+              username={username}
+              email={email}
+              showCreateButton={false} // 首屏加载时先不放按钮
+            />
             <div className="d-flex justify-content-center py-5">
               <GopherLoader />
             </div>
@@ -164,6 +250,7 @@ export default function MyForumProfilePage() {
       </div>
     );
   }
+
   // 打开编辑弹窗
   const openEditModal = (post: Post) => {
     if (!userId || userId !== post.user_id) return;
@@ -248,36 +335,15 @@ export default function MyForumProfilePage() {
 
       <main className="flex-grow-1 py-4">
         <Container className="max-w-3xl">
-          {/* Header */}
-          <header className="text-center mb-4">
-            <h1 className="fw-bold">My Forum</h1>
-
-            {authLoading && (
-              <p className="text-secondary">
-                <Spinner animation="border" size="sm" /> Verifying session…
-              </p>
-            )}
-
-            {!authLoading && userId && (
-              <>
-                <div className="text-muted small mb-2">
-                  Signed in as <b>{username}</b> ({email})
-                </div>
-
-                <motion.div
-                  whileTap={{ scale: 1.08 }}
-                  transition={{ duration: 0.12 }}
-                >
-                  <Button
-                    variant="primary"
-                    onClick={() => (window.location.href = "/post/create")}
-                  >
-                    + Create New Post
-                  </Button>
-                </motion.div>
-              </>
-            )}
-          </header>
+          {/* Header：左标题+登录信息，右 Create New Post */}
+          <MyForumHeader
+            authLoading={authLoading}
+            userId={userId}
+            username={username}
+            email={email}
+            showCreateButton={true}
+            onClickCreate={() => (window.location.href = "/post/create")}
+          />
 
           {/* action 错误提示（edit/delete） */}
           {actionError && (
@@ -287,77 +353,30 @@ export default function MyForumProfilePage() {
           )}
 
           {/* 帖子列表 */}
-          <Row className="gy-4">
-            {posts.map((p) => (
-              <Col key={p.id} xs={12}>
-                <PostCard
-                  post={p}
-                  viewerId={userId ?? null}
-                  onLike={handleLike}
-                  onUnlike={handleUnlike}
-                  onFav={handleFav}
-                  onUnfav={handleUnfav}
-                  onEdit={openEditModal}
-                  onDelete={requestDeletePost}
-                />
-                {deletingPostId === p.id && (
-                  <div className="text-danger small mt-1">
-                    <Spinner animation="border" size="sm" /> Deleting…
-                  </div>
-                )}
-              </Col>
-            ))}
-
-            {postsError && <Alert variant="danger">{postsError}</Alert>}
-          </Row>
-
-          {/* 分页 & 加载 */}
-          <div className="text-center mt-5">
-            <div className="d-flex justify-content-center align-items-center gap-3 flex-wrap">
-              <motion.div
-                whileTap={{ scale: 1.08 }}
-                transition={{ duration: 0.12 }}
-              >
-                <Button
-                  variant="dark"
-                  disabled={loadingPosts || !hasMore || authLoading}
-                  onClick={loadMore}
-                >
-                  {loadingPosts ? "Loading…" : hasMore ? "Load more" : "No more"}
-                </Button>
-              </motion.div>
-
-              {loadingPosts && posts.length > 0 && (
-                <div style={{ minWidth: 72 }}>
-                  <GopherLoader size={56} />
-                </div>
-              )}
-              
-              {!authLoading && posts.length === 0 && !loadingPosts && (
-                <motion.div
-                  whileTap={{ scale: 1.08 }}
-                  transition={{ duration: 0.12 }}
-                >
-                  <Button
-                    variant="outline-secondary"
-                    onClick={() => {
-                      setPosts([]);
-                      setHasMore(true);
-                      setTimeout(() => loadMore(), 0);
-                    }}
-                  >
-                    Refresh
-                  </Button>
-                </motion.div>
-              )}
-
-              <div className="text-secondary small">
-                Loaded <b>{posts.length}</b> post
-                {posts.length !== 1 ? "s" : ""}
-                {hasMore ? "" : " (all loaded)"}
-              </div>
-            </div>
-          </div>
+          <PostList
+            posts={posts}
+            loadingPosts={loadingPosts}
+            postsError={postsError}
+            hasMore={hasMore}
+            loadMore={loadMore}
+            onRefresh={() => {
+              setPosts([]);
+              setHasMore(true);
+              setTimeout(() => loadMore(), 0);
+            }}
+            canRefresh={!authLoading}
+            onLike={handleLike}
+            onUnlike={handleUnlike}
+            onFav={handleFav}
+            onUnfav={handleUnfav}
+            viewerId={userId ?? null}
+            enableEdit={true}
+            onEdit={openEditModal}
+            onDelete={requestDeletePost}
+            deletingPostId={deletingPostId}
+            disableLoadMore={authLoading}
+            onReport={handleReportPost}
+          />
         </Container>
       </main>
 
