@@ -49,9 +49,6 @@ export async function signUpUser(req: SignUpReq): Promise<SignUpResp> {
     credentials: "include",
   });
 
-  if (!response.ok) {
-    throw new Error("Signup request failed");
-  }
 
   const resp = (await response.json()) as SignUpResp;
   return resp;
