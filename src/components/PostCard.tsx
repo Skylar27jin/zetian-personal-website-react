@@ -21,24 +21,7 @@ interface PostCardProps {
   onEdit?: (post: Post) => void;
   onDelete?: (post: Post) => void;
 }
-
-function formatTime(isoString: string): string {
-  try {
-    const date = new Date(isoString);
-    return date.toLocaleString("en-US", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    }).replace(",", "");
-  } catch {
-    return isoString;
-  }
-}
-
-
+import formatTime from "../pkg/TimeFormatter";
 const MAX_LINES = 6;
 
 export default function PostCard({

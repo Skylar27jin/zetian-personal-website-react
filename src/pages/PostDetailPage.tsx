@@ -30,7 +30,6 @@ import { Link } from "react-router-dom";
 import { getUser } from "../api/userApi";
 import GopherLoader from "../components/GopherLoader";
 
-
 function formatTime(isoString: string): string {
   try {
     const date = new Date(isoString);
@@ -46,7 +45,6 @@ function formatTime(isoString: string): string {
     return isoString;
   }
 }
-
 
 export default function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
