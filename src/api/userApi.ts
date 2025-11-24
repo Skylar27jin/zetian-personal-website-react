@@ -4,6 +4,10 @@ import type {
   LoginResp,
   SignUpReq,
   SignUpResp,
+  LogoutReq,
+  LogoutResp,
+  ResetPasswordReq,
+  ResetPasswordResp,
 } from "../types/user";
 
 const BASE_URL = import.meta.env.VITE_HERTZ_BASE_URL;
@@ -79,5 +83,49 @@ export async function getUser(params: { id?: number; name?: string }): Promise<G
   }
 
   const resp = (await response.json()) as GetUserResp;
+  return resp;
+}
+
+
+// ---- LogoutUser ----
+/**
+ * Logout user
+ * POST /logout
+ * returns: { isSuccessful: boolean; errorMessage?: string }
+ */
+export async function LogoutUser(req: LogoutReq): Promise<LogoutResp> {
+    const response = await fetch(`${BASE_URL}/logout`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(req),
+    credentials: "include",
+  });
+
+
+  const resp = (await response.json()) as LogoutResp;
+  return resp;
+}
+
+
+// ---- ResetPassword ----
+/**
+ * Reset password
+ * POST /logout
+ * returns: { isSuccessful: boolean; errorMessage?: string }
+ */
+export async function ResetPassword(req: ResetPasswordReq): Promise<ResetPasswordResp> {
+    const response = await fetch(`${BASE_URL}/logout`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(req),
+    credentials: "include",
+  });
+
+
+  const resp = (await response.json()) as ResetPasswordResp;
   return resp;
 }
