@@ -1,5 +1,5 @@
 // src/components/PostList.tsx
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { Row, Col, Button, Alert, Spinner } from "react-bootstrap";
 import { motion } from "framer-motion";
 import PostCard from "./PostCard";
@@ -57,6 +57,38 @@ const ForumPostListSection: React.FC<ForumPostListSectionProps> = ({
   deletingPostId = null,
   disableLoadMore = false,
 }) => {
+  // 👇 底部“哨兵”元素，用于触发 infinite scroll
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    // 没更多、被禁用、或者没有 posts 时就不监听
+    if (!hasMore || disableLoadMore) return;
+
+    const node = loadMoreRef.current;
+    if (!node) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (first.isIntersecting && !loadingPosts) {
+          // 出现在视口里就尝试加载下一页
+          loadMore();
+        }
+      },
+      {
+        root: null,
+        rootMargin: "200px", // 提前 200px 预加载
+        threshold: 0.1,
+      }
+    );
+
+    observer.observe(node);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasMore, disableLoadMore, loadingPosts, loadMore, posts.length]);
+
   return (
     <>
       <Row className="gy-4">
@@ -86,6 +118,7 @@ const ForumPostListSection: React.FC<ForumPostListSectionProps> = ({
       {/* 分页 & 加载 */}
       <div className="text-center mt-5">
         <div className="d-flex justify-content-center align-items-center gap-3 flex-wrap">
+          {/* 手动 Load more 按钮：作为兜底 / 手动触发 */}
           <motion.div
             whileTap={{ scale: 1.08 }}
             transition={{ duration: 0.12 }}
@@ -115,10 +148,7 @@ const ForumPostListSection: React.FC<ForumPostListSectionProps> = ({
                 whileTap={{ scale: 1.08 }}
                 transition={{ duration: 0.12 }}
               >
-                <Button
-                  variant="outline-secondary"
-                  onClick={onRefresh}
-                >
+                <Button variant="outline-secondary" onClick={onRefresh}>
                   Refresh
                 </Button>
               </motion.div>
@@ -130,6 +160,12 @@ const ForumPostListSection: React.FC<ForumPostListSectionProps> = ({
             {hasMore ? "" : " (all loaded)"}
           </div>
         </div>
+
+        {/* 👇 这是 infinite scroll 的触发点 */}
+        <div
+          ref={loadMoreRef}
+          style={{ height: 1, marginTop: 8 }}
+        />
       </div>
     </>
   );

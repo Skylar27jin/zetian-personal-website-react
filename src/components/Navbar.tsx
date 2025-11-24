@@ -1,36 +1,19 @@
 // src/components/Navbar.tsx
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
-import { Navbar, Container, Nav, Button } from "react-bootstrap";
-
-// 和 UserForumIndex 保持一致的 key
-const LS_KEYS = {
-  userId: "me:id",
-  email: "me:email",
-  username: "me:username",
-} as const;
-
-type UserInfo = {
-  id: string;
-  email: string;
-  username: string;
-};
+import { Navbar, Container, Nav, Button, Spinner } from "react-bootstrap";
+import { useMeAuth } from "../hooks/useMeAuth";
 
 export default function MyNavbar() {
-  const [user, setUser] = useState<UserInfo | null>(null);
+  const {
+    authLoading,
+    authError,
+    userId,
+    username,
+    email,
+  } = useMeAuth();
 
-  // 组件挂载时，从 localStorage 里读用户信息
-  useEffect(() => {
-    const id = localStorage.getItem(LS_KEYS.userId);
-    const email = localStorage.getItem(LS_KEYS.email);
-    const username = localStorage.getItem(LS_KEYS.username) || "";
-
-    if (id && email) {
-      setUser({ id, email, username });
-    } else {
-      setUser(null);
-    }
-  }, []);
+  const isLoggedIn = !!userId && !authError;
 
   return (
     <Navbar bg="light" expand="sm" className="border-bottom shadow-sm">
@@ -44,15 +27,26 @@ export default function MyNavbar() {
         <Navbar.Toggle aria-controls="main-navbar" />
 
         <Navbar.Collapse id="main-navbar" className="justify-content-end">
-          {/* 右侧：如果已登录，显示用户信息；否则显示 Login / Sign Up */}
-          {user ? (
+          {/* 右侧：loading 状态 */}
+          {authLoading && (
+            <div className="d-flex align-items-center text-muted small gap-2">
+              <Spinner animation="border" size="sm" />
+              <span>Verifying session…</span>
+            </div>
+          )}
+
+          {/* 右侧：已登录 */}
+          {!authLoading && isLoggedIn && (
             <div className="d-flex flex-column align-items-end text-muted small">
               <span>
-                {user.username || "User"} (ID: {user.id})
+                {username || "User"} (ID: {userId})
               </span>
-              <span>{user.email}</span>
+              <span>{email}</span>
             </div>
-          ) : (
+          )}
+
+          {/* 右侧：未登录（或者 token 失效） */}
+          {!authLoading && !isLoggedIn && (
             <Nav className="align-items-center gap-2">
               <Button
                 as={Link as any}
