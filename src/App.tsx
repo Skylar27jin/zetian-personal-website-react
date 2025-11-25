@@ -11,6 +11,7 @@ import PostDetailPage from "./pages/PostDetailPage";
 import GopherLoadingPage from "./pages/GopherLoadingPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import SchoolFeedPage from "./pages/SchoolFeedPage";
 
 function App() {
   return (
@@ -37,6 +38,8 @@ function App() {
         <Route path="loading" element={<GopherLoadingPage/>}/>
         
         <Route path="reset-password" element={<ResetPasswordPage/>}/>
+
+        <Route path="/school/:id?" element={<SchoolFeedPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
