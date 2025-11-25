@@ -13,9 +13,7 @@ export default function SignupPage() {
   const [code, setCode] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // ✅ 新增
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -76,16 +74,12 @@ export default function SignupPage() {
 
   /** Step 3 - Register Account */
   const handleSignup = async () => {
-    if (!username || !password || !confirmPassword) {
-      setMsg("❌ Username and both password fields cannot be empty.");
+    if (!username || !password) {
+      setMsg("❌ Username and password cannot be empty.");
       return;
     }
     if (password.length < 8) {
       setMsg("❌ Password must be at least 8 characters.");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setMsg("❌ Two passwords do not match.");
       return;
     }
     if (loading) return;
@@ -156,7 +150,7 @@ export default function SignupPage() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#e5e7eb",
+        background: "#e5e7eb", // 灰色背景
         padding: "1.5rem",
       }}
     >
@@ -294,24 +288,13 @@ export default function SignupPage() {
               />
             </div>
 
-            {/* 第一行：密码 */}
             <CreatePasswordInput
               id="signup-password"
               label="Password"
               value={password}
               onChange={setPassword}
-              show={showPassword}
-              setShow={setShowPassword}
-            />
-
-            {/* 第二行：确认密码 */}
-            <CreatePasswordInput
-              id="signup-confirm-password"
-              label="Confirm password"
-              value={confirmPassword}
-              onChange={setConfirmPassword}
-              show={showConfirmPassword}
-              setShow={setShowConfirmPassword}
+              show={showPassword}            // ✅ 传入 show
+              setShow={setShowPassword}      // ✅ 传入 setShow
             />
           </>
         )}

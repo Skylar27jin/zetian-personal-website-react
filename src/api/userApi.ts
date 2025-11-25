@@ -28,10 +28,6 @@ export async function loginUser(req: LoginReq): Promise<LoginResp> {
     credentials: "include",
   });
 
-  if (!response.ok) {
-    // 这里是网络层失败，比如 500 / 404 / CORS
-    throw new Error("Login request failed");
-  }
 
   const resp = (await response.json()) as LoginResp;
   return resp;
@@ -114,9 +110,10 @@ export async function LogoutUser(req: LogoutReq): Promise<LogoutResp> {
  * Reset password
  * POST /logout
  * returns: { isSuccessful: boolean; errorMessage?: string }
+ * Now purpose accepts "resetpassword" and "signup", case INsensitive
  */
 export async function ResetPassword(req: ResetPasswordReq): Promise<ResetPasswordResp> {
-    const response = await fetch(`${BASE_URL}/logout`, {
+    const response = await fetch(`${BASE_URL}/user/reset-password`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

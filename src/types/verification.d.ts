@@ -14,6 +14,7 @@ export interface SendVeriCodeToEmailResp {
 export interface VerifyEmailCodeReq {
   email: string;
   code: string;
+  purpose: string;
 }
 
 export interface VerifyEmailCodeResp {

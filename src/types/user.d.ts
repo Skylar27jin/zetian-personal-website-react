@@ -26,7 +26,7 @@ export interface LogoutResp {
 
 export interface ResetPasswordReq {
   email: string;
-  newPassword: string;
+  new_password: string;
 }
 
 export interface ResetPasswordResp {
