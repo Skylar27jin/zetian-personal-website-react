@@ -1,11 +1,9 @@
 // src/components/PostCard.tsx
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Card, Button, Badge, Dropdown } from "react-bootstrap";
 import { motion } from "framer-motion";
 import type { Post } from "../types/post";
 import { Link } from "react-router-dom";
-import { getPostByID } from "../api/postApi";
-import { getUser } from "../api/userApi";
 import formatTime from "../pkg/TimeFormatter";
 
 const MAX_LINES = 6;
@@ -26,14 +24,9 @@ interface PostCardProps {
 
   // 任意人可以看到的 Report（我们在卡片里限制为非作者）
   onReport?: (post: Post) => void;
-}
 
-// 用来展示“回复了哪一条”的 meta 信息
-interface ReplyMeta {
-  id: number;
-  title: string;
-  authorName?: string;
-  createdAt: string;
+  // 后端批量返回的被引用帖子：key 是 post_id，value 是 Post
+  quotedPostsMap?: Record<number, Post>;
 }
 
 export default function PostCard(props: PostCardProps) {
@@ -47,69 +40,16 @@ export default function PostCard(props: PostCardProps) {
     onEdit,
     onDelete,
     onReport,
+    quotedPostsMap,
   } = props;
 
   const isOwner = viewerId != null && viewerId === post.user_id;
 
-  // ----------- lazy load reply_to 目标帖子的 meta 信息 -----------
-  const [replyMeta, setReplyMeta] = useState<ReplyMeta | null>(null);
-  const [replyLoading, setReplyLoading] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    if (!post.reply_to) {
-      setReplyMeta(null);
-      return;
-    }
-
-    (async () => {
-      try {
-        setReplyLoading(true);
-        setReplyMeta(null);
-
-        // 1) 拿被回复的帖子
-        const postResp = await getPostByID({ id: post.reply_to! });
-        if (cancelled) return;
-
-        if (!postResp.isSuccessful || !postResp.post) {
-          setReplyMeta(null);
-          return;
-        }
-
-        const target = postResp.post;
-        const baseMeta: ReplyMeta = {
-          id: target.id,
-          title: target.title,
-          createdAt: target.created_at,
-        };
-
-        // 2) 再拿作者姓名（失败就忽略）
-        try {
-          const userResp = await getUser({ id: target.user_id });
-          if (!cancelled && userResp.isSuccessful) {
-            baseMeta.authorName = userResp.userName;
-          }
-        } catch {
-          // ignore
-        }
-
-        if (!cancelled) {
-          setReplyMeta(baseMeta);
-        }
-      } catch {
-        if (!cancelled) {
-          setReplyMeta(null);
-        }
-      } finally {
-        if (!cancelled) setReplyLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [post.reply_to]);
+  // ----------- reply 的目标帖子（直接从 map 里拿）-----------
+  const replyTarget =
+    post.reply_to != null && quotedPostsMap
+      ? quotedPostsMap[post.reply_to]
+      : undefined;
 
   // ----------- 内容折叠 -----------
   const [expanded, setExpanded] = useState(false);
@@ -255,29 +195,35 @@ export default function PostCard(props: PostCardProps) {
                   borderLeft: "3px solid #d0d0d0",
                 }}
               >
-                {/* 第一行：Replying to + 作者 / 兜底 */}
+                {/* 第一行：Replying to xxx */}
                 <div>
                   <span className="me-1">↪ Replying to</span>
-                  {replyMeta?.authorName ? (
-                    <span className="fw-semibold">@{replyMeta.authorName}</span>
+                  {replyTarget?.user_name ? (
+                    <span className="fw-semibold">
+                      @{replyTarget.user_name}
+                    </span>
                   ) : (
-                    <span className="fw-semibold">Post #{post.reply_to}</span>
+                    <span className="fw-semibold">
+                      Post #{post.reply_to}
+                    </span>
                   )}
                 </div>
 
-                {/* 第二行：标题 + 时间（或者 loading / not found） */}
+                {/* 第二行：标题 + 时间 / 或 fallback */}
                 <div className="text-muted">
-                  {replyLoading && !replyMeta && "Loading original post…"}
-                  {!replyLoading && replyMeta && (
+                  {replyTarget ? (
                     <>
-                      <span className="fst-italic">“{replyMeta.title}”</span>
+                      <span className="fst-italic">
+                        “{replyTarget.title}”
+                      </span>
                       <span className="ms-1">
-                        · {formatTime(replyMeta.createdAt)}
+                        · {formatTime(replyTarget.created_at)}
                       </span>
                     </>
-                  )}
-                  {!replyLoading && !replyMeta && (
-                    <span className="fst-italic">Original post not found</span>
+                  ) : (
+                    <span className="fst-italic">
+                      Original post not found
+                    </span>
                   )}
                 </div>
               </div>

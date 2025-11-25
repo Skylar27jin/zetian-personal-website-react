@@ -111,6 +111,7 @@ export default function MyForumProfilePage() {
     handleUnfav,
     setPosts,
     setHasMore,
+    quotedPosts,
   } = usePersonalPosts(safeUserId, enabled);
 
   const handleReportPost = (post: Post) => {
@@ -376,6 +377,7 @@ export default function MyForumProfilePage() {
             deletingPostId={deletingPostId}
             disableLoadMore={authLoading}
             onReport={handleReportPost}
+            quotedPosts={quotedPosts}
           />
         </Container>
       </main>

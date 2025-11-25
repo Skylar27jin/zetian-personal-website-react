@@ -27,11 +27,12 @@ interface ForumPostListSectionProps {
   onEdit?: (post: Post) => void;
   onDelete?: (post: Post) => void;
 
-  // 新增：Report 回调（可以暂时只弹个提示）
   onReport?: (post: Post) => void;
 
   deletingPostId?: number | null;
   disableLoadMore?: boolean;
+
+  quotedPosts?: Record<string, Post>;
 }
 
 const ForumPostListSection: React.FC<ForumPostListSectionProps> = ({
@@ -56,6 +57,7 @@ const ForumPostListSection: React.FC<ForumPostListSectionProps> = ({
 
   deletingPostId = null,
   disableLoadMore = false,
+  quotedPosts = {},
 }) => {
   // 👇 底部“哨兵”元素，用于触发 infinite scroll
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
@@ -104,6 +106,7 @@ const ForumPostListSection: React.FC<ForumPostListSectionProps> = ({
               onEdit={enableEdit ? onEdit : undefined}
               onDelete={enableEdit ? onDelete : undefined}
               onReport={onReport}
+              quotedPostsMap={quotedPosts}
             />
             {enableEdit && deletingPostId === p.id && (
               <div className="text-danger small mt-1">

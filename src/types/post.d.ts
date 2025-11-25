@@ -126,8 +126,7 @@ export interface GetSchoolRecentPostsResp {
   isSuccessful: boolean;
   errorMessage: string;
   posts: Post[];
-  // thrift 里有 oldestTime: min(posts.created_at)
-  oldestTime?: string;
+  quoted_posts?: Record<string, Post>;
 }
 
 /* ==================================
@@ -145,6 +144,7 @@ export interface GetPersonalRecentPostsResp {
   isSuccessful: boolean;
   errorMessage: string;
   posts: Post[];
+  quoted_posts?: Record<string, Post>;
 }
 
 /* ========================

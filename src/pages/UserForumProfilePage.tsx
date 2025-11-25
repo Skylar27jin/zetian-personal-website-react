@@ -98,6 +98,7 @@ export default function UserProfilePage() {
     handleUnfav,
     setPosts,
     setHasMore,
+    quotedPosts,
   } = usePersonalPosts(targetUserId, enabled);
 
 
