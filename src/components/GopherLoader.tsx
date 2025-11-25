@@ -16,7 +16,7 @@ const img = (
     <div className="gopher-crop">
       <div className="gopher-align-bottom">
         <img
-          src="/gopher_front.png"
+          src="/gopher-dance-long-3x.gif"
           alt="Loading..."
           className="gopher-loader__img"
         />

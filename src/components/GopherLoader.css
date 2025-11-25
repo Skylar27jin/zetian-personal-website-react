@@ -1,7 +1,7 @@
 /* 裁切层 */
 .gopher-crop {
   width: 96px;
-  height: 108px;          /* 不要太高，避免露出上方透明区 */
+  height: 120px;          /* 不要太高，避免露出上方透明区 */
   overflow: hidden;
   display: flex;
   justify-content: center;

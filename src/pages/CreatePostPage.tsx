@@ -16,7 +16,7 @@ import {
 import Navbar from "../components/Navbar";
 import { getAllSchools } from "../api/schoolApi";
 import type { School } from "../types/school";
-import BaseLayout from "../layout/ForumBaselayout";
+import BaseLayout from "../layouts/ForumBaselayout";
 
 const LS_KEYS = {
   userId: "me:id",

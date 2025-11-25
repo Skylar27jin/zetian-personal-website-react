@@ -1,0 +1,58 @@
+
+
+.auth-layout {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 80px 16px;
+  /* 不再设置背景色，保持“透明”，用 body / 外层背景 */
+  background: transparent;
+}
+
+.auth-content {
+  width: 100%;
+  max-width: 480px; /* 控制中间表单区域宽度 */
+  z-index: 10;
+}
+
+/* gopher 样式同之前 */
+.auth-gopher {
+  position: absolute;
+  width: 140px;
+  opacity: 0.9;
+  pointer-events: none;
+  user-select: none;
+}
+
+.auth-gopher-top {
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.auth-gopher-bottom {
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+@media (min-width: 768px) {
+  .auth-layout {
+    padding: 40px 80px;
+  }
+
+  .auth-gopher-top {
+    top: 50%;
+    left: 40px;
+    transform: translateY(-50%);
+  }
+
+  .auth-gopher-bottom {
+    top: 50%;
+    right: 40px;
+    left: auto;
+    transform: translateY(-50%);
+  }
+}
