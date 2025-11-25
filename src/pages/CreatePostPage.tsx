@@ -16,6 +16,7 @@ import {
 import Navbar from "../components/Navbar";
 import { getAllSchools } from "../api/schoolApi";
 import type { School } from "../types/school";
+import BaseLayout from "../layout/ForumBaselayout";
 
 const LS_KEYS = {
   userId: "me:id",
@@ -263,7 +264,6 @@ export default function CreatePostPage() {
   return (
     <div className="bg-light min-vh-100 d-flex flex-column">
       <Navbar />
-
       <main className="flex-grow-1 py-4">
         <Container style={{ maxWidth: "720px" }}>
           <Card className="p-4 shadow-sm border-0">
@@ -285,7 +285,7 @@ export default function CreatePostPage() {
                     style={{
                       maxHeight: "180px",
                       overflowY: "auto",
-                      background: "#fff",
+                      background: "#ffffffff",
                     }}
                   >
                     {schoolsLoading && (

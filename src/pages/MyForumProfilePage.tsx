@@ -19,8 +19,19 @@ import type { Post } from "../types/post";
 import GopherLoader from "../components/GopherLoader";
 import PostList from "../components/PostList";
 
+// --------------------- 通用页面壳子 ---------------------
+function PageShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="bg-light min-vh-100 d-flex flex-column">
+      <Navbar />
+      <main className="flex-grow-1 py-4">
+        <Container className="max-w-3xl">{children}</Container>
+      </main>
+    </div>
+  );
+}
 
-
+// --------------------- Header ---------------------
 function MyForumHeader(props: {
   authLoading: boolean;
   userId?: number | null;
@@ -33,7 +44,7 @@ function MyForumHeader(props: {
     authLoading,
     userId,
     username,
-    email,
+    // email 暂时没用到，先留着
     showCreateButton = false,
     onClickCreate,
   } = props;
@@ -55,9 +66,7 @@ function MyForumHeader(props: {
                 variant="outline-secondary"
                 size="sm"
                 className="py-0 px-2 small-button"
-                onClick={() =>
-                  (window.location.href = `/user/${userId}`)
-                }
+                onClick={() => (window.location.href = `/user/${userId}`)}
               >
                 View Public Profile
               </Button>
@@ -92,6 +101,7 @@ function MyForumHeader(props: {
   );
 }
 
+// --------------------- 页面主体 ---------------------
 export default function MyForumProfilePage() {
   const { authLoading, authError, userId, username, email } = useMeAuth();
 
@@ -115,7 +125,6 @@ export default function MyForumProfilePage() {
   } = usePersonalPosts(safeUserId, enabled);
 
   const handleReportPost = (post: Post) => {
-    // 先占坑，以后接后端
     alert(`Report feature coming soon for post #${post.id}`);
   };
 
@@ -162,93 +171,78 @@ export default function MyForumProfilePage() {
   // 鉴权失败
   if (!authLoading && authError) {
     return (
-      <div className="bg-light min-vh-100 d-flex flex-column">
-        <Navbar />
-        <main className="flex-grow-1 py-4">
-          <Container className="max-w-3xl">
-            <MyForumHeader
-              authLoading={authLoading}
-              userId={userId}
-              username={username}
-              email={email}
-              showCreateButton={false}
-            />
-            <Alert variant="danger" className="mt-3">
-              Auth failed: {authError}
-            </Alert>
-            <motion.div
-              whileTap={{ scale: 1.08 }}
-              transition={{ duration: 0.12 }}
-              className="mt-3"
-            >
-              <Button
-                variant="primary"
-                onClick={() => (window.location.href = "/login")}
-              >
-                Go to Login
-              </Button>
-            </motion.div>
-          </Container>
-        </main>
-      </div>
+      <PageShell>
+        <MyForumHeader
+          authLoading={authLoading}
+          userId={userId}
+          username={username}
+          email={email}
+          showCreateButton={false}
+        />
+        <Alert variant="danger" className="mt-3">
+          Auth failed: {authError}
+        </Alert>
+        <motion.div
+          whileTap={{ scale: 1.08 }}
+          transition={{ duration: 0.12 }}
+          className="mt-3"
+        >
+          <Button
+            variant="primary"
+            onClick={() => (window.location.href = "/login")}
+          >
+            Go to Login
+          </Button>
+        </motion.div>
+      </PageShell>
     );
   }
 
   // 未登录但也没有报错（guest）
   if (!authLoading && !authError && !userId) {
     return (
-      <div className="bg-light min-vh-100 d-flex flex-column">
-        <Navbar />
-        <main className="flex-grow-1 py-4">
-          <Container className="max-w-3xl">
-            <MyForumHeader
-              authLoading={authLoading}
-              userId={userId}
-              username={username}
-              email={email}
-              showCreateButton={false}
-            />
-            <Alert variant="info" className="mt-3">
-              You are not logged in. Please log in to view your posts.
-            </Alert>
-            <motion.div
-              whileTap={{ scale: 1.08 }}
-              transition={{ duration: 0.12 }}
-              className="mt-3"
-            >
-              <Button
-                variant="primary"
-                onClick={() => (window.location.href = "/login")}
-              >
-                Go to Login
-              </Button>
-            </motion.div>
-          </Container>
-        </main>
-      </div>
+      <PageShell>
+        <MyForumHeader
+          authLoading={authLoading}
+          userId={userId}
+          username={username}
+          email={email}
+          showCreateButton={false}
+        />
+        <Alert variant="info" className="mt-3">
+          You are not logged in. Please log in to view your posts.
+        </Alert>
+        <motion.div
+          whileTap={{ scale: 1.08 }}
+          transition={{ duration: 0.12 }}
+          className="mt-3"
+        >
+          <Button
+            variant="primary"
+            onClick={() => (window.location.href = "/login")}
+          >
+            Go to Login
+          </Button>
+        </motion.div>
+      </PageShell>
     );
   }
 
   // 首次加载帖子中（已登录）
   if (loadingPosts && posts.length === 0 && isLoggedIn) {
     return (
-      <div className="bg-light min-vh-100 d-flex flex-column">
-        <Navbar />
-        <main className="flex-grow-1 py-4">
-          <Container className="max-w-3xl">
-            <MyForumHeader
-              authLoading={authLoading}
-              userId={userId}
-              username={username}
-              email={email}
-              showCreateButton={false} // 首屏加载时先不放按钮
-            />
-            <div className="d-flex justify-content-center py-5">
-              <GopherLoader />
-            </div>
-          </Container>
-        </main>
-      </div>
+      <PageShell>
+        <MyForumHeader
+          authLoading={authLoading}
+          userId={userId}
+          username={username}
+          email={email}
+          showCreateButton={false}
+        />
+        <div className="d-flex justify-content-center py-5">
+          <GopherLoader />
+        </div>
+      </PageShell>
     );
   }
 
@@ -330,64 +324,55 @@ export default function MyForumProfilePage() {
     setConfirmDeletePost(null);
   };
 
+  // ======= 正常渲染 =======
   return (
-    <div className="bg-light min-vh-100 d-flex flex-column">
-      <Navbar />
+    <PageShell>
+      {/* Header：左标题+登录信息，右 Create New Post */}
+      <MyForumHeader
+        authLoading={authLoading}
+        userId={userId}
+        username={username}
+        email={email}
+        showCreateButton={true}
+        onClickCreate={() => (window.location.href = "/post/create")}
+      />
 
-      <main className="flex-grow-1 py-4">
-        <Container className="max-w-3xl">
-          {/* Header：左标题+登录信息，右 Create New Post */}
-          <MyForumHeader
-            authLoading={authLoading}
-            userId={userId}
-            username={username}
-            email={email}
-            showCreateButton={true}
-            onClickCreate={() => (window.location.href = "/post/create")}
-          />
+      {/* action 错误提示（edit/delete） */}
+      {actionError && (
+        <Alert variant="danger" className="py-2">
+          {actionError}
+        </Alert>
+      )}
 
-          {/* action 错误提示（edit/delete） */}
-          {actionError && (
-            <Alert variant="danger" className="py-2">
-              {actionError}
-            </Alert>
-          )}
-
-          {/* 帖子列表 */}
-          <PostList
-            posts={posts}
-            loadingPosts={loadingPosts}
-            postsError={postsError}
-            hasMore={hasMore}
-            loadMore={loadMore}
-            onRefresh={() => {
-              setPosts([]);
-              setHasMore(true);
-              setTimeout(() => loadMore(), 0);
-            }}
-            canRefresh={!authLoading}
-            onLike={handleLike}
-            onUnlike={handleUnlike}
-            onFav={handleFav}
-            onUnfav={handleUnfav}
-            viewerId={userId ?? null}
-            enableEdit={true}
-            onEdit={openEditModal}
-            onDelete={requestDeletePost}
-            deletingPostId={deletingPostId}
-            disableLoadMore={authLoading}
-            onReport={handleReportPost}
-            quotedPosts={quotedPosts}
-          />
-        </Container>
-      </main>
+      {/* 帖子列表 */}
+      <PostList
+        posts={posts}
+        loadingPosts={loadingPosts}
+        postsError={postsError}
+        hasMore={hasMore}
+        loadMore={loadMore}
+        onRefresh={() => {
+          setPosts([]);
+          setHasMore(true);
+          setTimeout(() => loadMore(), 0);
+        }}
+        canRefresh={!authLoading}
+        onLike={handleLike}
+        onUnlike={handleUnlike}
+        onFav={handleFav}
+        onUnfav={handleUnfav}
+        viewerId={userId ?? null}
+        enableEdit={true}
+        onEdit={openEditModal}
+        onDelete={requestDeletePost}
+        deletingPostId={deletingPostId}
+        disableLoadMore={authLoading}
+        onReport={handleReportPost}
+        quotedPosts={quotedPosts}
+      />
 
       {/* Edit Modal */}
-      <Modal
-        show={!!editingPost}
-        onHide={() => setEditingPost(null)}
-        centered
-      >
+      <Modal show={!!editingPost} onHide={() => setEditingPost(null)} centered>
         <Modal.Header closeButton>
           <Modal.Title>Edit Post</Modal.Title>
         </Modal.Header>
@@ -482,6 +467,6 @@ export default function MyForumProfilePage() {
           </Button>
         </Modal.Footer>
       </Modal>
-    </div>
+    </PageShell>
   );
 }
