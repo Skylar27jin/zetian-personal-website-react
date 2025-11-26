@@ -12,7 +12,8 @@ interface EditorProps {
   minRows?: number;
 }
 
-const EMOJI_RE = /:emoji_([a-zA-Z0-9_]+):/g;
+// 只保留 pattern，本地按需 new RegExp，避免 lastIndex 副作用
+const EMOJI_PATTERN = ":emoji_([a-zA-Z0-9_]+):";
 
 const Editor: React.FC<EditorProps> = ({
   value,
@@ -26,7 +27,7 @@ const Editor: React.FC<EditorProps> = ({
   const [isComposing, setIsComposing] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
 
-  // ================= 工具函数（都放在组件内部，避免 this/作用域问题） =================
+  // ================= 工具函数 =================
 
   // 创建 emoji <img>
   const createEmojiImg = (name: string) => {
@@ -43,17 +44,15 @@ const Editor: React.FC<EditorProps> = ({
   // 把一个 TextNode 中的占位符就地替换成 [Text|IMG|Text...]
   const replacePlaceholdersInTextNode = (textNode: Text) => {
     const text = textNode.data;
-    if (!EMOJI_RE.test(text)) {
-      EMOJI_RE.lastIndex = 0;
-      return null;
-    }
-    EMOJI_RE.lastIndex = 0;
+    const re = new RegExp(EMOJI_PATTERN, "g");
+    if (!re.test(text)) return null;
+    re.lastIndex = 0;
 
     const frag = document.createDocumentFragment();
     let lastIndex = 0;
     let m: RegExpExecArray | null;
 
-    while ((m = EMOJI_RE.exec(text))) {
+    while ((m = re.exec(text))) {
       const before = text.slice(lastIndex, m.index);
       if (before) frag.appendChild(document.createTextNode(before));
 
@@ -62,10 +61,11 @@ const Editor: React.FC<EditorProps> = ({
       if (img) {
         frag.appendChild(img);
       } else {
-        frag.appendChild(document.createTextNode(m[0])); // 未知表情保留原样
+        // 未知表情保留原样
+        frag.appendChild(document.createTextNode(m[0]));
       }
 
-      lastIndex = EMOJI_RE.lastIndex;
+      lastIndex = re.lastIndex;
     }
 
     const tail = text.slice(lastIndex);
@@ -84,11 +84,16 @@ const Editor: React.FC<EditorProps> = ({
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
     const targets: Text[] = [];
     let node: Node | null;
+
     while ((node = walker.nextNode())) {
-      if ((node as Text).data && EMOJI_RE.test((node as Text).data)) {
-        targets.push(node as Text);
+      const textNode = node as Text;
+      const text = textNode.data;
+      if (!text) continue;
+
+      const re = new RegExp(EMOJI_PATTERN, "g");
+      if (re.test(text)) {
+        targets.push(textNode);
       }
-      EMOJI_RE.lastIndex = 0;
     }
 
     let lastReplaced: ChildNode | null = null;
@@ -111,8 +116,8 @@ const Editor: React.FC<EditorProps> = ({
   };
 
   // 把 DOM 读回占位符文本
-  const readPlainWithEmojis = (): string => {
-    const root = divRef.current!;
+  const readPlainWithEmojis = (root: HTMLElement | null): string => {
+    if (!root) return "";
     const parts: string[] = [];
 
     const walk = (node: Node) => {
@@ -120,20 +125,28 @@ const Editor: React.FC<EditorProps> = ({
         parts.push((node as Text).data);
       } else if (node.nodeType === Node.ELEMENT_NODE) {
         const el = node as HTMLElement;
-        if (el.tagName === "BR") {
+        const tag = el.tagName;
+
+        if (tag === "BR") {
           parts.push("\n");
           return;
         }
-        if (el.tagName === "IMG" && el.dataset.emoji) {
+
+        if (tag === "IMG" && el.dataset.emoji) {
           parts.push(`:emoji_${el.dataset.emoji}:`);
           return;
         }
+
         for (const child of Array.from(el.childNodes)) walk(child);
-        if (el.tagName === "DIV" || el.tagName === "P") parts.push("\n");
+
+        if (tag === "DIV" || tag === "P") {
+          parts.push("\n");
+        }
       }
     };
 
     for (const child of Array.from(root.childNodes)) walk(child);
+
     return parts.join("").replace(/\n+$/g, "");
   };
 
@@ -156,31 +169,31 @@ const Editor: React.FC<EditorProps> = ({
     const range = sel.getRangeAt(0);
     range.deleteContents();
 
-    // 按占位符拆分，插入 TextNode / IMG
-    let last: Node | null = null;
-    const parts = text.split(EMOJI_RE); // 结果：[text, name, text, name, ... , text]
+    const re = new RegExp(EMOJI_PATTERN, "g");
+    const parts = text.split(re); // [text, name, text, name, ..., text]
+
     for (let i = 0; i < parts.length; i++) {
       const chunk = parts[i];
+
       if (i % 2 === 0) {
+        // 普通文本
         if (chunk) {
           const t = document.createTextNode(chunk);
           range.insertNode(t);
-          last = t;
           range.setStartAfter(t);
           range.collapse(true);
         }
       } else {
+        // 表情名
         const name = chunk;
         const img = createEmojiImg(name);
         if (img) {
           range.insertNode(img);
-          last = img;
           range.setStartAfter(img);
           range.collapse(true);
         } else {
           const fallback = document.createTextNode(`:emoji_${name}:`);
           range.insertNode(fallback);
-          last = fallback;
           range.setStartAfter(fallback);
           range.collapse(true);
         }
@@ -189,22 +202,26 @@ const Editor: React.FC<EditorProps> = ({
 
     sel.removeAllRanges();
     sel.addRange(range);
-    return last;
   };
 
   // 取光标左/右侧“叶子”节点（用于 Backspace/Delete 一次删掉整张表情）
   const getPrevLeaf = (container: Node, offset: number): Node | null => {
     if (container.nodeType === Node.TEXT_NODE && offset > 0) return container;
+
     let node: Node | null = container;
+
     if (node.nodeType === Node.ELEMENT_NODE && offset > 0) {
       node = (node as Element).childNodes[offset - 1] || null;
     } else {
       while (node && !node.previousSibling) node = node.parentNode;
       node = node?.previousSibling || null;
     }
+
     if (!node) return null;
-    while ((node as any) && (node as Node).lastChild)
+
+    while ((node as Node).lastChild) {
       node = (node as Node).lastChild!;
+    }
     return node;
   };
 
@@ -213,16 +230,21 @@ const Editor: React.FC<EditorProps> = ({
       const text = container as Text;
       if (offset < text.data.length) return container;
     }
+
     let node: Node | null = container;
+
     if (node.nodeType === Node.ELEMENT_NODE) {
       node = (node as Element).childNodes[offset] || null;
     } else {
       while (node && !node.nextSibling) node = node.parentNode;
       node = node?.nextSibling || null;
     }
+
     if (!node) return null;
-    while ((node as any) && (node as Node).firstChild)
+
+    while ((node as Node).firstChild) {
       node = (node as Node).firstChild!;
+    }
     return node;
   };
 
@@ -233,15 +255,18 @@ const Editor: React.FC<EditorProps> = ({
     const el = divRef.current;
     if (!el) return;
 
-    const current = readPlainWithEmojis();
+    const current = readPlainWithEmojis(el);
     if (current === value) return;
 
-    el.innerHTML = ""; // 仅当外部驱动变更时重建
+    el.innerHTML = "";
     if (!value) return;
 
-    const parts = value.split(EMOJI_RE);
+    const re = new RegExp(EMOJI_PATTERN, "g");
+    const parts = value.split(re);
+
     for (let i = 0; i < parts.length; i++) {
       const chunk = parts[i];
+
       if (i % 2 === 0) {
         if (chunk) el.appendChild(document.createTextNode(chunk));
       } else {
@@ -260,32 +285,98 @@ const Editor: React.FC<EditorProps> = ({
       sel?.removeAllRanges();
       sel?.addRange(range);
     }
-  }, [value, autoFocus]); // 外部驱动
+  }, [value, autoFocus]);
 
   // 输入：合成中不处理；结束后统一替换
   const handleInput = () => {
     if (isComposing) return;
-    onChange(readPlainWithEmojis());
+    onChange(readPlainWithEmojis(divRef.current));
     replaceAllPlaceholdersInEditor();
   };
 
   const handlePaste: React.ClipboardEventHandler<HTMLDivElement> = (e) => {
     e.preventDefault();
-    const text = e.clipboardData.getData("text/plain");
-    insertPlainTextAtCaret(text);
+
+    const html = e.clipboardData.getData("text/html");
+    const text = e.clipboardData.getData("text/plain") || "";
+
+    let insertText = text;
+
+    // 如果是从自己这个 editor（或类似结构）复制出来的，html 里会带 data-emoji
+    if (html && html.includes("data-emoji=")) {
+      const temp = document.createElement("div");
+      temp.innerHTML = html;
+      // 复用现有逻辑：把 IMG[data-emoji] -> :emoji_xxx:
+      insertText = readPlainWithEmojis(temp);
+    } else {
+      // 兜底优化：如果纯文本刚好是一个表情名，也当成 emoji 处理
+      const trimmed = text.trim();
+      if (trimmed && EMOJI_MAP[trimmed]) {
+        insertText = `:emoji_${trimmed}:`;
+      }
+    }
+
+    insertPlainTextAtCaret(insertText);
     replaceAllPlaceholdersInEditor();
-    onChange(readPlainWithEmojis());
+    onChange(readPlainWithEmojis(divRef.current));
   };
 
-  // 键盘删除：Backspace/Delete 一次删掉整张表情
+  // 键盘：Backspace/Delete 删除整张 emoji；ArrowLeft/Right 跳过整张 emoji
   const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
-    if (e.key !== "Backspace" && e.key !== "Delete") return;
-
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
 
     const range = sel.getRangeAt(0);
-    if (!range.collapsed) return; // 有选区则用默认行为
+
+    // 有选区时，统一交给浏览器默认行为处理选中区域
+    if (!range.collapsed) return;
+
+    // ========= 方向键：在 emoji 旁边时一次跳过整个 token =========
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+      let target: Node | null = null;
+
+      if (e.key === "ArrowLeft") {
+        const left = getPrevLeaf(range.startContainer, range.startOffset);
+        if (
+          left &&
+          left.nodeType === Node.ELEMENT_NODE &&
+          (left as HTMLElement).tagName === "IMG" &&
+          (left as HTMLElement).dataset.emoji
+        ) {
+          target = left;
+        }
+      } else {
+        const right = getNextLeaf(range.startContainer, range.startOffset);
+        if (
+          right &&
+          right.nodeType === Node.ELEMENT_NODE &&
+          (right as HTMLElement).tagName === "IMG" &&
+          (right as HTMLElement).dataset.emoji
+        ) {
+          target = right;
+        }
+      }
+
+      if (target) {
+        const newRange = document.createRange();
+        if (e.key === "ArrowLeft") {
+          // 一次跳到 emoji 左侧
+          newRange.setStartBefore(target);
+        } else {
+          // 一次跳到 emoji 右侧
+          newRange.setStartAfter(target);
+        }
+        newRange.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+        e.preventDefault(); // 不让浏览器再多走一步
+      }
+
+      return; // 已处理方向键，直接返回
+    }
+
+    // ========= 删除键：Backspace/Delete 一次删掉整张表情 =========
+    if (e.key !== "Backspace" && e.key !== "Delete") return;
 
     let target: Node | null = null;
 
@@ -315,14 +406,13 @@ const Editor: React.FC<EditorProps> = ({
       const parent = target.parentNode!;
       parent.removeChild(target);
 
-      // 保持光标位置
       const newRange = document.createRange();
       newRange.setStart(range.startContainer, range.startOffset);
       newRange.collapse(true);
       sel.removeAllRanges();
       sel.addRange(newRange);
 
-      onChange(readPlainWithEmojis());
+      onChange(readPlainWithEmojis(divRef.current));
       e.preventDefault();
     }
   };
@@ -344,7 +434,7 @@ const Editor: React.FC<EditorProps> = ({
     const token = `:emoji_${name}:`;
     insertPlainTextAtCaret(token);
     replaceAllPlaceholdersInEditor();
-    onChange(readPlainWithEmojis());
+    onChange(readPlainWithEmojis(divRef.current));
     setShowPicker(false);
   };
 
@@ -365,16 +455,9 @@ const Editor: React.FC<EditorProps> = ({
         <EmojiPicker
           open={showPicker}
           onClose={() => setShowPicker(false)}
-          onSelect={(key) => {
-            // 复用你现有逻辑：插入 token -> 替换成 IMG -> 同步占位符文本
-            const token = `:emoji_${key}:`;
-            insertPlainTextAtCaret(token);
-            replaceAllPlaceholdersInEditor();
-            onChange(readPlainWithEmojis());
-            setShowPicker(false);
-          }}
-          anchor="left" // or "right"
-          searchable={false} // 需要搜索时改成 true
+          onSelect={insertEmoji}
+          anchor="left"
+          searchable={false}
         />
       </div>
 
@@ -383,6 +466,7 @@ const Editor: React.FC<EditorProps> = ({
         ref={divRef}
         className="editor-editable"
         contentEditable
+        suppressContentEditableWarning
         role="textbox"
         aria-multiline="true"
         data-placeholder={placeholder}
@@ -394,7 +478,7 @@ const Editor: React.FC<EditorProps> = ({
         onCompositionEnd={() => {
           setIsComposing(false);
           replaceAllPlaceholdersInEditor();
-          onChange(readPlainWithEmojis());
+          onChange(readPlainWithEmojis(divRef.current));
         }}
       />
     </div>
