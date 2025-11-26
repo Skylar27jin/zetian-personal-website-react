@@ -7,6 +7,7 @@ import { useMeAuth } from "../hooks/useMeAuth";
 import AvatarInitials from "./navbar-components/AvatarInitials";
 import SearchBar from "./navbar-components/SearchBar";
 import "./Navbar.css";
+import { LogoutUser } from "../api/userApi";
 
 const FEED_TABS = [
   { key: "school", label: "School", to: "/school" },
@@ -15,7 +16,8 @@ const FEED_TABS = [
 
 export default function MyNavbar() {
   const location = useLocation();
-  const { authError, userId, username } = useMeAuth();
+  // ⭐ 把 authLoading 一起取出来
+  const { authError, userId, username, authLoading } = useMeAuth();
   const isLoggedIn = !!userId && !authError;
   const nav = useNavigate();
 
@@ -79,18 +81,44 @@ export default function MyNavbar() {
         {/* Row 1: Avatar | Search | Inbox | Create —— 可折叠 */}
         <div className={`top-row ${showTopRow ? "" : "top-row--hidden"}`}>
           <div className="d-flex align-items-center justify-content-between" style={{ gap: 12 }}>
-            {/* Avatar */}
+            {/* Avatar / Login / Signup 区域 */}
             <div className="d-flex align-items-center" style={{ gap: 4 }}>
-              <AvatarInitials
-                username={username}
-                onSettingsClick={() => nav("/settings")}
-                onLogout={() => {
-                  localStorage.removeItem("me:id");
-                  localStorage.removeItem("me:email");
-                  localStorage.removeItem("me:username");
-                  window.location.href = "/login";
-                }}
-              />
+              {authLoading ? (
+                // 1. 正在 /me 中
+                <span className="text-muted small">Loading…</span>
+              ) : isLoggedIn ? (
+                // 2. 登录成功：显示头像 + 下拉菜单
+                <AvatarInitials
+                  username={username}
+                  onSettingsClick={() => nav("/settings")}
+                  onLogout={() => {
+                    localStorage.removeItem("me:id");
+                    localStorage.removeItem("me:email");
+                    localStorage.removeItem("me:username");
+                    LogoutUser({});
+                    window.location.href = "/login";
+                  }}
+                />
+              ) : (
+                // 3. 未登录 或 /me 失败：显示 Login / Sign up 按钮
+                <>
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    onClick={() => nav("/login")}
+                  >
+                    Log in
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="ms-1"
+                    onClick={() => nav("/signup")}
+                  >
+                    Sign up
+                  </Button>
+                </>
+              )}
             </div>
 
             {/* Search (flex-1) */}
@@ -106,7 +134,9 @@ export default function MyNavbar() {
               className="icon-plain"
               aria-label="Inbox"
               onClick={() => alert("Inbox coming soon~")}
-              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && alert("Inbox coming soon~")}
+              onKeyDown={(e) =>
+                (e.key === "Enter" || e.key === " ") && alert("Inbox coming soon~")
+              }
             >
               ✉️
             </span>
@@ -142,7 +172,6 @@ export default function MyNavbar() {
             </Link>
           ))}
         </nav>
-
       </Container>
     </Navbar>
   );
