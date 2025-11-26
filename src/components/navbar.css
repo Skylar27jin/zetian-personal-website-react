@@ -1,0 +1,119 @@
+/* src/components/Navbar.css */
+
+.max-w-3xl { max-width: 960px; }
+
+/* 可折叠容器（允许溢出，避免菜单被裁切） */
+.top-row {
+  transition: max-height .2s ease, margin .2s ease, padding .2s ease,
+              opacity .2s ease, transform .2s ease;
+  will-change: max-height, opacity, transform;
+  overflow: visible;
+  margin: 0px 0 2px;
+  max-height: 64px;
+}
+.top-row--hidden {
+  max-height: 0;
+  margin: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+}
+
+
+/* 头像外层：作为定位参考 */
+.avatar-wrap {
+  position: relative;
+  z-index: 10;
+}
+
+/* 强制覆盖 Bootstrap 在 navbar dropdown 里的规则 */
+.navbar .dropdown-menu {
+  position: absolute !important;
+  inset: auto !important;
+  transform: none !important;
+
+
+  top: calc(100% + 30px) !important;
+
+  right: auto !important;
+  left: auto !important;
+  z-index: 99999 !important;
+}
+
+
+
+/* 极简黑白圆形样式 */
+#avatar-dd.avatar-toggle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50% !important;
+  background: #fff;
+  color: #111;
+  border: 2px solid #111;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 36px;
+  text-align: center;
+  box-shadow: 0 0 0 2px #f0f0f0;
+  padding: 0 !important;
+}
+
+
+
+.avatar-toggle:hover {
+  background: #111;             /* 反转 */
+  color: #fff;
+  border-color: #111;
+}
+
+.avatar-toggle:focus,
+.avatar-toggle:active {
+  outline: none;
+  box-shadow: 0 0 0 2px #a4a4a41a;  /* 轻微可访问态 */
+}
+
+/* Feed Tabs（紧凑） */
+.feed-tabs {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  border-top: 1px solid #f3f3f3;
+  padding-top: 2px;
+}
+.feed-tabs--compact { gap: 12px; }
+.feed-tab {
+  position: relative;
+  color: #6c757d;
+  text-decoration: none;
+  padding: 4px 0;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+.feed-tab:hover { color: #000; }
+.feed-tab.active::after, .feed-tab:focus::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -6px;
+  height: 2px;
+  background: #2d7dff;
+  border-radius: 2px;
+}
+
+/* 纯图标（Inbox） */
+.icon-plain {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px; height: 32px;
+  cursor: pointer;
+  user-select: none;
+  background: transparent;
+  border: 0;
+  font-size: 18px;
+  line-height: 1;
+  color: inherit;
+}
+.icon-plain:hover { opacity: .8; transform: translateY(-1px); }
+.icon-plain:active { transform: translateY(0); }

@@ -228,10 +228,13 @@ export default function PostCard(props: PostCardProps) {
                 </div>
               </div>
             </Link>
+            {/* 留点空隙 */}
+            <div style={{ whiteSpace: 'pre-wrap' }}>
+              {'\n'}
+            </div>
           </div>
         )}
 
-        <hr />
 
         {/* meta + like/fav 区 */}
         <div className="d-flex align-items-center text-muted small mb-2">

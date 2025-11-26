@@ -76,7 +76,8 @@ function MyForumHeader(props: {
         </div>
 
         {/* 右侧：Create New Post */}
-        {showCreateButton && !authLoading && userId && (
+        {false && showCreateButton && !authLoading && userId 
+        && (
           <motion.div
             whileTap={{ scale: 1.08 }}
             transition={{ duration: 0.12 }}
@@ -89,7 +90,8 @@ function MyForumHeader(props: {
               + Create New Post
             </Button>
           </motion.div>
-        )}
+        )
+        }
       </div>
 
       {/* 第二行：登录信息 */}
