@@ -1,6 +1,6 @@
 // src/components/Navbar.tsx
 import React, { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Navbar, Container, Button } from "react-bootstrap";
 import { motion } from "framer-motion";
 import { useMeAuth } from "../hooks/useMeAuth";
@@ -14,6 +14,7 @@ const FEED_TABS = [
 ];
 
 export default function MyNavbar() {
+  const location = useLocation();
   const { authError, userId, username } = useMeAuth();
   const isLoggedIn = !!userId && !authError;
   const nav = useNavigate();
@@ -129,11 +130,19 @@ export default function MyNavbar() {
         {/* Row 2: Feed Tabs —— 始终可见 */}
         <nav className="feed-tabs feed-tabs--compact">
           {FEED_TABS.map((t) => (
-            <Link key={t.key} to={t.to} className="feed-tab">
+            <Link
+              key={t.key}
+              to={t.to}
+              className={
+                "feed-tab" +
+                (location.pathname.startsWith(t.to) ? " active" : "")
+              }
+            >
               {t.label}
             </Link>
           ))}
         </nav>
+
       </Container>
     </Navbar>
   );
