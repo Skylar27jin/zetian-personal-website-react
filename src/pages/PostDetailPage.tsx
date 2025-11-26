@@ -436,8 +436,8 @@ export default function PostDetailPage() {
                   {" · "}
                   {formatTime(post.created_at)}
                   {" · "}
-                  🏫 {post.school_name}
-                  {post.location && <> · 📍 {post.location}</>}
+                  {post.school_name}
+                  {post.location && <> ·  {post.location}</>}
                 </div>
 
                 {/* tags */}
@@ -505,7 +505,7 @@ export default function PostDetailPage() {
                         post.is_liked_by_user ? handleUnlike(post.id) : handleLike(post.id)
                       }
                     >
-                      {post.is_liked_by_user ? "💙" : "👍"} ({post.like_count})
+                      {post.is_liked_by_user ? "💙" : "👍"} {post.like_count}
                     </Button>
                   </motion.div>
 
@@ -518,7 +518,7 @@ export default function PostDetailPage() {
                         post.is_fav_by_user ? handleUnfav(post.id) : handleFav(post.id)
                       }
                     >
-                      {post.is_fav_by_user ? "🌟" : "⭐"} ({post.fav_count})
+                      {post.is_fav_by_user ? "🌟" : "⭐"} {post.fav_count}
                     </Button>
                   </motion.div>
 

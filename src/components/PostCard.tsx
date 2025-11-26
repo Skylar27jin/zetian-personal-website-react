@@ -238,7 +238,7 @@ export default function PostCard(props: PostCardProps) {
           {/* 左侧：meta 信息 */}
           <div className="flex-grow-1">
             {post.school_name} · {" "}
-            {formatTime(post.created_at)}
+            {formatTime(post.created_at, "relative")}
             {post.location && <> · {post.location}</>}
           </div>
 
