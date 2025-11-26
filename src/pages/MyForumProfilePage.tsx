@@ -18,6 +18,7 @@ import { deletePost, editPost } from "../api/postApi";
 import type { Post } from "../types/post";
 import GopherLoader from "../components/GopherLoader";
 import PostList from "../components/PostList";
+import Editor from "../components/Editor";
 
 // --------------------- 通用页面壳子 ---------------------
 function PageShell({ children }: { children: React.ReactNode }) {
@@ -384,24 +385,29 @@ export default function MyForumProfilePage() {
                 type="text"
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
+                placeholder="Enter title..."
               />
             </Form.Group>
+
             <Form.Group className="mb-3">
               <Form.Label>Content</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={5}
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
+              <Editor
+                value={editContent}              // 占位符文本（含 :emoji_xxx:）
+                onChange={setEditContent}        // 实时回传占位符文本
+                placeholder="Write something… (supports :emoji_gopher_happy: )"
+                minRows={10}
+                autoFocus
               />
             </Form.Group>
           </Form>
+
           {editSaving && (
             <div className="text-muted small">
               <Spinner animation="border" size="sm" /> Saving…
             </div>
           )}
         </Modal.Body>
+
         <Modal.Footer>
           <Button
             variant="secondary"

@@ -1,0 +1,45 @@
+/* 输入区整体留白更多，让光标不贴边 */
+.editor-editable {
+  padding: 12px 14px;     /* ↑ 原来是 8px 10px */
+  line-height: 1.7;       /* ↑ 行高更大，光标更“醒目” */
+  caret-color: #0a84ff;   /* 高对比度光标色（macOS 蓝） */
+  border: 1px solid #444;
+  border-radius: 6px;
+  outline: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+  direction: ltr;
+  unicode-bidi: plaintext;
+  background: #fff;
+  color: #111;
+  min-height: 7.5em;      /* = 约 5 行空间 */
+}
+
+/* 聚焦时给一个轻微内阴影，便于定位输入区 */
+.editor-editable:focus {
+  box-shadow: 0 0 0 2px rgba(10,132,255,0.15) inset;
+}
+
+/* emoji 与文字稍微拉开距离，避免光标“贴脸” */
+.emoji-inline {
+  width: 20px;
+  height: 20px;
+  vertical-align: middle;
+  margin: 0 2px;          /* 新增：左右各 2px */
+}
+
+/* 选中文本的高亮更柔和，避免干扰光标视觉 */
+.editor-editable ::selection {
+  background: rgba(10,132,255,0.25);
+}
+
+/* placeholder 更淡一点，避免和真实文字抢视觉 */
+.editor-editable:empty:before {
+  content: attr(data-placeholder);
+  color: #7a7a7a;         /* 略深但仍然是占位样式 */
+  pointer-events: none;
+}
+
+
+.emoji-inline { pointer-events: none; }
+

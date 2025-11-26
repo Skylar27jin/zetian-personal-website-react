@@ -18,27 +18,19 @@ function App() {
     <BrowserRouter>
       <Routes>
         //test route
-        <Route path="/numop" element={<GetNumOpPage/>} />
+        <Route path="/numop" element={<GetNumOpPage />} />
         //my personal introduction
         <Route path="" element={<Index />} />
-
         //person's favorite website
         <Route path="/weblist" element={<GetMyFavWebPage />} />
-
-
-        <Route path="/login" element={<LoginPage/>}/>
-        <Route path="/signup" element={<SignupPage/>}/>
-
-        <Route path="/me" element={<MyForumProfilePage/>}/>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/me" element={<MyForumProfilePage />} />
         <Route path="/post/create" element={<CreatePostPage />} />
-
-        <Route path="/user/:id" element={<UserProfilePage/>}/>
-
+        <Route path="/user/:id" element={<UserProfilePage />} />
         <Route path="/post/:id" element={<PostDetailPage />} />
-        <Route path="loading" element={<GopherLoadingPage/>}/>
-        
-        <Route path="reset-password" element={<ResetPasswordPage/>}/>
-
+        <Route path="loading" element={<GopherLoadingPage />} />
+        <Route path="reset-password" element={<ResetPasswordPage />} />
         <Route path="/school/:id?" element={<SchoolFeedPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
@@ -46,5 +38,4 @@ function App() {
   );
 }
 
-
-export default App
+export default App;

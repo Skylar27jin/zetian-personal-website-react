@@ -16,7 +16,8 @@ import {
 import Navbar from "../components/Navbar";
 import { getAllSchools } from "../api/schoolApi";
 import type { School } from "../types/school";
-import BaseLayout from "../layouts/ForumBaselayout";
+import Editor from "../components/Editor";
+
 
 const LS_KEYS = {
   userId: "me:id",
@@ -347,16 +348,18 @@ export default function CreatePostPage() {
                 </Form.Group>
 
                 {/* Content */}
-                <Form.Group className="mb-4">
-                  <Form.Label>Content</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    rows={5}
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder="My thoughts..."
-                  />
-                </Form.Group>
+              <Form.Group className="mb-4">
+                <Form.Label>Content</Form.Label>
+                <Editor
+                  value={content}
+                  onChange={setContent}
+                  placeholder="My thoughts..."
+                  autoFocus
+                  minRows={20}
+                />
+              </Form.Group>
+
+
 
                 {/* Extra: location + reply_to */}
                 <Row className="mb-3">

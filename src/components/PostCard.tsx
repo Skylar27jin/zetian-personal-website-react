@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import type { Post } from "../types/post";
 import { Link } from "react-router-dom";
 import formatTime from "../pkg/TimeFormatter";
+import RichContent from "./RichContent";
 
 const MAX_LINES = 6;
 
@@ -53,10 +54,9 @@ export default function PostCard(props: PostCardProps) {
 
   // ----------- 内容折叠 -----------
   const [expanded, setExpanded] = useState(false);
+  // 用原有规则判长文（留着就行）：
   const lines = (post.content || "").split("\n");
   const isLong = lines.length > MAX_LINES;
-  const contentToShow =
-    !isLong || expanded ? post.content : lines.slice(0, MAX_LINES).join("\n");
 
   // ----------- 右上角菜单项可见性 -----------
   const showEdit = isOwner && !!onEdit;
@@ -162,11 +162,17 @@ export default function PostCard(props: PostCardProps) {
           </div>
         )}
 
-        {/* 内容区：支持换行 + 折叠 */}
-        <Card.Text style={{ whiteSpace: "pre-wrap" }}>
-          {contentToShow}
-          {isLong && !expanded && " …"}
-        </Card.Text>
+        {/* 内容区：支持 emoji + 折叠 */}
+        <div className="mb-2">
+          {expanded ? (
+            <RichContent content={post.content} />
+          ) : (
+            <>
+              <RichContent content={post.content} clampLines={MAX_LINES} />
+              {isLong && <span> …</span>}
+            </>
+          )}
+        </div>
 
         {isLong && (
           <div className="mb-2">
@@ -203,9 +209,7 @@ export default function PostCard(props: PostCardProps) {
                       @{replyTarget.user_name}
                     </span>
                   ) : (
-                    <span className="fw-semibold">
-                      Post #{post.reply_to}
-                    </span>
+                    <span className="fw-semibold">Post #{post.reply_to}</span>
                   )}
                 </div>
 
@@ -213,17 +217,13 @@ export default function PostCard(props: PostCardProps) {
                 <div className="text-muted">
                   {replyTarget ? (
                     <>
-                      <span className="fst-italic">
-                        “{replyTarget.title}”
-                      </span>
+                      <span className="fst-italic">“{replyTarget.title}”</span>
                       <span className="ms-1">
                         · {formatTime(replyTarget.created_at)}
                       </span>
                     </>
                   ) : (
-                    <span className="fst-italic">
-                      Original post not found
-                    </span>
+                    <span className="fst-italic">Original post not found</span>
                   )}
                 </div>
               </div>
@@ -237,9 +237,9 @@ export default function PostCard(props: PostCardProps) {
         <div className="d-flex align-items-center text-muted small mb-2">
           {/* 左侧：meta 信息 */}
           <div className="flex-grow-1">
-            🏫 {post.school_name} · 👁 {post.view_count} ·{" "}
+            {post.school_name} · {" "}
             {formatTime(post.created_at)}
-            {post.location && <> · 📍 {post.location}</>}
+            {post.location && <> · {post.location}</>}
           </div>
 
           {/* 右侧：like / fav 按钮 */}
@@ -267,9 +267,7 @@ export default function PostCard(props: PostCardProps) {
             >
               <Button
                 size="sm"
-                variant={
-                  post.is_fav_by_user ? "warning" : "outline-secondary"
-                }
+                variant={post.is_fav_by_user ? "warning" : "outline-secondary"}
                 onClick={() =>
                   post.is_fav_by_user ? onUnfav(post.id) : onFav(post.id)
                 }

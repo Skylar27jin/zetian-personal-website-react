@@ -1,4 +1,4 @@
-// src/pages/SignupPage.tsx 
+// src/pages/SignupPage.tsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { sendVerificationCode, verifyEmailCode } from "../api/verificationApi";
@@ -152,20 +152,20 @@ export default function SignupPage() {
 
   return (
     <AuthLayout>
-    <div
-      style={{
-        width: "100%",
-        // 原来是 0.95，几乎不透明
-        // 想明显一点可以先用 0.4 试试
-        background: "rgba(255,255,255,0.4)",
-        borderRadius: 18,
-        padding: "2.5rem 2rem",
-        boxShadow: "0 16px 40px rgba(15,23,42,0.18)",
-        boxSizing: "border-box",
-        // （可选）玻璃磨砂效果
-        backdropFilter: "blur(12px)",
-      }}
-    >
+      <div
+        style={{
+          width: "100%",
+          // 原来是 0.95，几乎不透明
+          // 想明显一点可以先用 0.4 试试
+          background: "rgba(255,255,255,0.4)",
+          borderRadius: 18,
+          padding: "2.5rem 2rem",
+          boxShadow: "0 16px 40px rgba(15,23,42,0.18)",
+          boxSizing: "border-box",
+          // （可选）玻璃磨砂效果
+          backdropFilter: "blur(12px)",
+        }}
+      >
         <h2
           style={{
             marginBottom: "0.25rem",

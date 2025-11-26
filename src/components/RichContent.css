@@ -1,0 +1,22 @@
+.rc-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+}
+
+.rc-content img.emoji-inline {
+  width: 20px;
+  height: 20px;
+  vertical-align: text-bottom;
+  margin: 0 2px;
+}
+
+/* 多行省略：可用于卡片摘要 */
+.clamp-2, .clamp-3, .clamp-4 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.clamp-2 { line-clamp: 2; }
+.clamp-3 { line-clamp: 3; }
+.clamp-4 { line-clamp: 4; }

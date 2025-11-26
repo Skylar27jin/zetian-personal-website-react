@@ -1,4 +1,7 @@
 // src/pages/PostDetailPage.tsx
+
+import RichContent from "../components/RichContent";
+import Editor from "../components/Editor";
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -475,15 +478,10 @@ export default function PostDetailPage() {
                   )}
 
                 {/* 正文：整屏展开，不用 Card 包围 */}
-                <div
-                  style={{
-                    whiteSpace: "pre-wrap",
-                    fontSize: "1.05rem",
-                    lineHeight: 1.7,
-                  }}
-                >
-                  {post.content}
-                </div>
+                <RichContent
+                  content={post.content}
+                />
+
 
                {/* 底部统计 + 操作区 */}
               <hr className="my-4" />
@@ -606,22 +604,35 @@ export default function PostDetailPage() {
                             </div>
 
                             {/* 正文（最多 3 行，可展开） */}
-                            <div
-                            className="text-muted"
-                            style={{ whiteSpace: "pre-wrap", fontSize: "0.9rem" }}
-                            >
-                            {(() => {
-                                const full = parentMeta.post.content || "";
-                                const lines = full.split("\n");
-                                const isLong = lines.length > MAX_PARENT_LINES;
-
-                                if (!isLong) return full;
-
-                                const sliced = lines.slice(0, MAX_PARENT_LINES).join("\n");
-
-                                return parentExpanded ? full : sliced + "\n…";
-                            })()}
+                            <div className="text-muted" style={{ fontSize: "0.9rem" }}>
+                              {parentExpanded ? (
+                                <RichContent content={parentMeta.post.content || ""} />
+                              ) : (
+                                <RichContent content={parentMeta.post.content || ""} clampLines={MAX_PARENT_LINES} />
+                              )}
                             </div>
+
+                            {/* 展开/收起按钮 */}
+                            {(() => {
+                              const full = parentMeta.post.content || "";
+                              const isLong = full.split("\n").length > MAX_PARENT_LINES;
+                              return (
+                                isLong && (
+                                  <Button
+                                    variant="link"
+                                    size="sm"
+                                    className="p-0 mt-1"
+                                    onClick={(e) => {
+                                      e.preventDefault(); // 不触发 Link 跳转
+                                      setParentExpanded((v) => !v);
+                                    }}
+                                  >
+                                    {parentExpanded ? "Show less" : "Show full original post"}
+                                  </Button>
+                                )
+                              );
+                            })()}
+
 
                             {(() => {
                             const full = parentMeta.post.content || "";
