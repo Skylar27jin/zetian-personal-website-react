@@ -354,6 +354,12 @@ export default function CreatePostPage() {
                   />
                 </Form.Group>
 
+                {/* Media Uploader（只选文件，不立即上传） */}
+                <PostMediaUploader
+                  files={mediaFiles}
+                  onFilesChange={setMediaFiles}
+                />
+                
                 {/* Content */}
                 <Form.Group className="mb-4">
                   <Form.Label>Content</Form.Label>
@@ -438,18 +444,12 @@ export default function CreatePostPage() {
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyDown={handleTagKeyDown}
-                    placeholder="Type a tag and press Enter (max 10)"
+                    placeholder="Type a tag~ max 10 tags"
                   />
                   <Form.Text className="text-muted">
-                    Press <b>Enter</b> to add a tag. Max <b>{10}</b> tags.
+                    Press <b>Enter</b> to add; Max <b>{10}</b> tags.
                   </Form.Text>
                 </Form.Group>
-
-                {/* Media Uploader（只选文件，不立即上传） */}
-                <PostMediaUploader
-                  files={mediaFiles}
-                  onFilesChange={setMediaFiles}
-                />
 
                 {/* Submit Button */}
                 <div className="text-center">

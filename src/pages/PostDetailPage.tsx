@@ -32,6 +32,8 @@ import type { Post, GetPostByIDResp } from "../types/post";
 import { Link } from "react-router-dom";
 import { getUser } from "../api/userApi";
 import GopherLoader from "../components/GopherLoader";
+import PostMediaDisplay from "../components/PostMediaDisplay";
+
 
 function formatTime(isoString: string): string {
   try {
@@ -456,26 +458,16 @@ export default function PostDetailPage() {
                   </div>
                 )}
 
-                {/* media */}
+                {/* media：多图轮播 */}
                 {post.media_type !== "text" &&
                   post.media_urls &&
                   post.media_urls.length > 0 && (
-                    <div className="mb-4">
-                      {post.media_type === "image" ? (
-                        <img
-                          src={post.media_urls[0]}
-                          alt="post media"
-                          className="img-fluid rounded-3"
-                        />
-                      ) : post.media_type === "video" ? (
-                        <video
-                          controls
-                          className="w-100 rounded-3"
-                          src={post.media_urls[0]}
-                        />
-                      ) : null}
-                    </div>
-                  )}
+                    <PostMediaDisplay
+                      mediaType={post.media_type}
+                      mediaUrls={post.media_urls}
+                    />
+                )}
+
 
                 {/* 正文：整屏展开，不用 Card 包围 */}
                 <RichContent
