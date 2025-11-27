@@ -27,8 +27,88 @@ const Editor: React.FC<EditorProps> = ({
   const [isComposing, setIsComposing] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
 
+  // ======= Undo 栈：简单记录纯文本 value 的历史 =======
+  const undoStackRef = useRef<string[]>([]);
+  const undoIndexRef = useRef<number>(-1);
+  const isRestoringRef = useRef(false);
 
   // ================= 工具函数 =================
+
+
+  // 把新的纯文本状态记录进 undo 栈
+  const pushHistory = (nextValue: string) => {
+    if (!divRef.current) return;
+    if (isRestoringRef.current) return; // 撤销过程中不要再入栈
+
+    const stack = undoStackRef.current;
+    let idx = undoIndexRef.current;
+
+    // 第一次
+    if (stack.length === 0) {
+      stack.push(nextValue);
+      undoIndexRef.current = 0;
+      return;
+    }
+
+    // 和当前顶一样就不重复压
+    if (stack[idx] === nextValue) return;
+
+    // 如果之前做过撤销，现在再输入新内容 -> 抛弃 redo 分支
+    if (idx < stack.length - 1) {
+      stack.splice(idx + 1);
+    }
+
+    stack.push(nextValue);
+    undoIndexRef.current = stack.length - 1;
+
+    // 简单限制一下长度，例如 100
+    const MAX_HISTORY = 100;
+    if (stack.length > MAX_HISTORY) {
+      stack.shift();
+      undoIndexRef.current = stack.length - 1;
+    }
+  };
+
+  // 根据纯文本状态，重建编辑区 DOM（用于 Ctrl+Z 撤销）
+  const applyPlainToEditor = (plain: string) => {
+    const el = divRef.current;
+    if (!el) return;
+
+    el.innerHTML = "";
+    if (!plain) {
+      ensureEmojiAnchors();
+      return;
+    }
+
+    const re = new RegExp(EMOJI_PATTERN, "g");
+    const parts = plain.split(re);
+
+    for (let i = 0; i < parts.length; i++) {
+      const chunk = parts[i];
+
+      if (i % 2 === 0) {
+        if (chunk) el.appendChild(document.createTextNode(chunk));
+      } else {
+        const name = chunk;
+        const img = createEmojiImg(name);
+        if (img) el.appendChild(img);
+        else el.appendChild(document.createTextNode(`:emoji_${name}:`));
+      }
+    }
+
+    ensureEmojiAnchors();
+
+    // 光标移到末尾
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  };
+
+
+
 
   // 创建 emoji <img>
   const createEmojiImg = (name: string) => {
@@ -319,8 +399,11 @@ const Editor: React.FC<EditorProps> = ({
   // 输入：合成中不处理；结束后统一替换
   const handleInput = () => {
     if (isComposing) return;
-    onChange(readPlainWithEmojis(divRef.current));
+    const plain = readPlainWithEmojis(divRef.current);
+    pushHistory(plain);
+    onChange(plain);
     replaceAllPlaceholdersInEditor();
+    ensureEmojiAnchors();
   };
 
   const handlePaste: React.ClipboardEventHandler<HTMLDivElement> = (e) => {
@@ -349,11 +432,37 @@ const Editor: React.FC<EditorProps> = ({
 
     insertPlainTextAtCaret(insertText);
     replaceAllPlaceholdersInEditor();
-    onChange(readPlainWithEmojis(divRef.current));
+    ensureEmojiAnchors();
+    const plain = readPlainWithEmojis(divRef.current);
+    pushHistory(plain);
+    onChange(plain);
   };
 
   // 键盘：Backspace/Delete 删除整张 emoji；ArrowLeft/Right 跳过整张 emoji
   const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
+// ========= Ctrl/Cmd + Z：撤销 =========
+    if ((e.key === "z" || e.key === "Z") && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+
+      const stack = undoStackRef.current;
+      let idx = undoIndexRef.current;
+
+      if (stack.length === 0 || idx <= 0) {
+        return;
+      }
+
+      idx -= 1;
+      undoIndexRef.current = idx;
+      const prev = stack[idx];
+
+      isRestoringRef.current = true;
+      applyPlainToEditor(prev);
+      onChange(prev);
+      isRestoringRef.current = false;
+
+      return; // 不再继续处理别的键盘逻辑
+    }
+
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
 
@@ -388,20 +497,23 @@ const Editor: React.FC<EditorProps> = ({
         }
       }
 
-      if (target) {
-        const newRange = document.createRange();
-        if (e.key === "ArrowLeft") {
-          // 一次跳到 emoji 左侧
-          newRange.setStartBefore(target);
-        } else {
-          // 一次跳到 emoji 右侧
-          newRange.setStartAfter(target);
-        }
-        newRange.collapse(true);
-        sel.removeAllRanges();
-        sel.addRange(newRange);
-        e.preventDefault(); // 不让浏览器再多走一步
-      }
+    if (target) {
+      const parent = target.parentNode!;
+      parent.removeChild(target);
+
+      const newRange = document.createRange();
+      newRange.setStart(range.startContainer, range.startOffset);
+      newRange.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(newRange);
+
+      ensureEmojiAnchors();
+      const plain = readPlainWithEmojis(divRef.current);
+      pushHistory(plain);
+      onChange(plain);
+      e.preventDefault();
+    }
+
 
       return; // 已处理方向键，直接返回
     }
@@ -465,10 +577,13 @@ const Editor: React.FC<EditorProps> = ({
     const token = `:emoji_${name}:`;
     insertPlainTextAtCaret(token);
     replaceAllPlaceholdersInEditor();
-    ensureEmojiAnchors(); // ⭐ 插入后兜底
-    onChange(readPlainWithEmojis(divRef.current));
+    ensureEmojiAnchors();
+    const plain = readPlainWithEmojis(divRef.current);
+    pushHistory(plain);
+    onChange(plain);
     setShowPicker(false);
   };
+
 
   // ================= 渲染 =================
 
@@ -510,7 +625,10 @@ const Editor: React.FC<EditorProps> = ({
         onCompositionEnd={() => {
           setIsComposing(false);
           replaceAllPlaceholdersInEditor();
-          onChange(readPlainWithEmojis(divRef.current));
+          ensureEmojiAnchors();
+          const plain = readPlainWithEmojis(divRef.current);
+          pushHistory(plain);
+          onChange(plain);
         }}
       />
     </div>
