@@ -27,6 +27,7 @@ const Editor: React.FC<EditorProps> = ({
   const [isComposing, setIsComposing] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
 
+
   // ================= 工具函数 =================
 
   // 创建 emoji <img>
@@ -37,9 +38,34 @@ const Editor: React.FC<EditorProps> = ({
     img.src = src;
     img.dataset.emoji = name;
     img.className = "emoji-inline";
-    img.contentEditable = "false";
     return img;
   };
+
+  // 如果编辑区里只有一只 emoji，没有任何文本，给前后各塞一个零宽空格，方便光标停靠
+  const ensureEmojiAnchors = () => {
+    const root = divRef.current;
+    if (!root) return;
+
+    const imgs = root.querySelectorAll("img[data-emoji]");
+    // 只在“只有一只 emoji 且没有其它文本”的情况下兜底
+    if (
+      imgs.length === 1 &&
+      root.childNodes.length === 1 &&    // 只有这一只 IMG
+      (root.textContent ?? "").trim() === ""
+    ) {
+      const img = imgs[0];
+      const before = document.createTextNode("\u200B");
+      const after = document.createTextNode("\u200B");
+
+      root.insertBefore(before, img);
+      if (img.nextSibling) {
+        root.insertBefore(after, img.nextSibling);
+      } else {
+        root.appendChild(after);
+      }
+    }
+  };
+
 
   // 把一个 TextNode 中的占位符就地替换成 [Text|IMG|Text...]
   const replacePlaceholdersInTextNode = (textNode: Text) => {
@@ -122,7 +148,10 @@ const Editor: React.FC<EditorProps> = ({
 
     const walk = (node: Node) => {
       if (node.nodeType === Node.TEXT_NODE) {
-        parts.push((node as Text).data);
+        const data = (node as Text).data;
+        // 忽略我们自己塞的零宽空格锚点
+        if (data === "\u200B") return;
+        parts.push(data);
       } else if (node.nodeType === Node.ELEMENT_NODE) {
         const el = node as HTMLElement;
         const tag = el.tagName;
@@ -276,7 +305,7 @@ const Editor: React.FC<EditorProps> = ({
         else el.appendChild(document.createTextNode(`:emoji_${name}:`));
       }
     }
-
+    ensureEmojiAnchors();
     if (autoFocus) {
       const range = document.createRange();
       range.selectNodeContents(el);
@@ -302,12 +331,13 @@ const Editor: React.FC<EditorProps> = ({
 
     let insertText = text;
 
-    // 如果是从自己这个 editor（或类似结构）复制出来的，html 里会带 data-emoji
     if (html && html.includes("data-emoji=")) {
       const temp = document.createElement("div");
       temp.innerHTML = html;
-      // 复用现有逻辑：把 IMG[data-emoji] -> :emoji_xxx:
-      insertText = readPlainWithEmojis(temp);
+
+      // 把 IMG[data-emoji] -> :emoji_xxx:，并去掉「前导空白/换行」
+      const raw = readPlainWithEmojis(temp);
+      insertText = raw.replace(/^\s+/, "");  // 关键：干掉开头那一坨 \n / 空格
     } else {
       // 兜底优化：如果纯文本刚好是一个表情名，也当成 emoji 处理
       const trimmed = text.trim();
@@ -315,6 +345,7 @@ const Editor: React.FC<EditorProps> = ({
         insertText = `:emoji_${trimmed}:`;
       }
     }
+
 
     insertPlainTextAtCaret(insertText);
     replaceAllPlaceholdersInEditor();
@@ -434,6 +465,7 @@ const Editor: React.FC<EditorProps> = ({
     const token = `:emoji_${name}:`;
     insertPlainTextAtCaret(token);
     replaceAllPlaceholdersInEditor();
+    ensureEmojiAnchors(); // ⭐ 插入后兜底
     onChange(readPlainWithEmojis(divRef.current));
     setShowPicker(false);
   };
@@ -449,7 +481,7 @@ const Editor: React.FC<EditorProps> = ({
           className="editor-emoji-toggle"
           onClick={() => setShowPicker((s) => !s)}
         >
-          😀 Emoji
+          Emoji
         </button>
 
         <EmojiPicker
