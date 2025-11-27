@@ -93,13 +93,6 @@ function MyForumHeader(props: {
         )
         }
       </div>
-
-      {/* 第二行：登录信息 */}
-      {!authLoading && userId && (
-        <div className="text-muted small">
-          Signed in as <b>{username}</b>
-        </div>
-      )}
     </header>
   );
 }

@@ -18,7 +18,6 @@ import { getAllSchools } from "../api/schoolApi";
 import type { School } from "../types/school";
 import Editor from "../components/Editor";
 import PostMediaUploader from "../components/PostMediaUploader";
-
 const LS_KEYS = {
   userId: "me:id",
   email: "me:email",

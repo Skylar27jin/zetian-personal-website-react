@@ -2,7 +2,7 @@
 
 import RichContent from "../components/RichContent";
 import Editor from "../components/Editor";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState} from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Container,
@@ -33,6 +33,7 @@ import { Link } from "react-router-dom";
 import { getUser } from "../api/userApi";
 import GopherLoader from "../components/GopherLoader";
 import PostMediaDisplay from "../components/PostMediaDisplay";
+import ScrollablePanel from "../components/ScrollPanel";
 
 
 function formatTime(isoString: string): string {
@@ -469,10 +470,10 @@ export default function PostDetailPage() {
                 )}
 
 
-                {/* 正文：整屏展开，不用 Card 包围 */}
-                <RichContent
-                  content={post.content}
-                />
+              {/* 正文：可滚动 + 进度条 */}
+              <ScrollablePanel maxHeight="70vh">
+                <RichContent content={post.content} />
+              </ScrollablePanel>
 
 
                {/* 底部统计 + 操作区 */}

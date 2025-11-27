@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { EMOJI_MAP } from "../pkg/emojiMap";
 import "./Editor.css";
 import EmojiPicker from "./EmojiPicker";
+import ScrollablePanel from "./ScrollPanel";
 
 interface EditorProps {
   value: string; // 外部值；可包含 :emoji_xxx:
@@ -609,28 +610,30 @@ const Editor: React.FC<EditorProps> = ({
       </div>
 
       {/* 输入区 */}
-      <div
-        ref={divRef}
-        className="editor-editable"
-        contentEditable
-        suppressContentEditableWarning
-        role="textbox"
-        aria-multiline="true"
-        data-placeholder={placeholder}
-        style={{ minHeight: `${minRows * 1.5}em` }}
-        onInput={handleInput}
-        onPaste={handlePaste}
-        onKeyDown={handleKeyDown}
-        onCompositionStart={() => setIsComposing(true)}
-        onCompositionEnd={() => {
-          setIsComposing(false);
-          replaceAllPlaceholdersInEditor();
-          ensureEmojiAnchors();
-          const plain = readPlainWithEmojis(divRef.current);
-          pushHistory(plain);
-          onChange(plain);
-        }}
-      />
+      <ScrollablePanel maxHeight="50vh" showProgress>
+        <div
+          ref={divRef}
+          className="editor-editable"
+          contentEditable
+          suppressContentEditableWarning
+          role="textbox"
+          aria-multiline="true"
+          data-placeholder={placeholder}
+          style={{ minHeight: `${minRows * 1.5}em` }}
+          onInput={handleInput}
+          onPaste={handlePaste}
+          onKeyDown={handleKeyDown}
+          onCompositionStart={() => setIsComposing(true)}
+          onCompositionEnd={() => {
+            setIsComposing(false);
+            replaceAllPlaceholdersInEditor();
+            ensureEmojiAnchors();
+            const plain = readPlainWithEmojis(divRef.current);
+            pushHistory(plain);
+            onChange(plain);
+          }}
+        />
+      </ScrollablePanel>
     </div>
   );
 };
