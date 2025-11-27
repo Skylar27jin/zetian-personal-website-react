@@ -2,29 +2,45 @@
   position: relative;
   border-radius: 16px;
   overflow: hidden;
-  /* 原来是 #000，这里改成透明/不设背景 */
-  background-color: transparent;
+  background-color: #000;
 }
 
-/* 图片 / 视频统一尺寸控制 */
+/* 统一居中 + 黑底 */
 .post-media-display-inner {
   display: flex;
   justify-content: center;
   align-items: center;
+  background-color: #000;
 }
 
-/* 图片：按宽度自适应，高度自动，不再出现左右黑边 */
+/* 默认：移动端/小屏，给一个稍大的上限 */
 .post-media-display-inner img {
   width: 100%;
   height: auto;
+  max-height: 420px;
   object-fit: contain;
 }
 
-/* 视频可以保留高度上限，避免太高 */
 .post-media-display-inner video {
   width: 100%;
-  max-height: 520px;
+  height: auto;
+  max-height: 420px;
   object-fit: contain;
+}
+
+/* -------- 桌面端：把图片整体缩小一点 -------- */
+@media (min-width: 992px) {
+  .post-media-display-inner img,
+  .post-media-display-inner video {
+    max-height: 450px; /* 你可以再调小一点，比如 260 / 280 */
+  }
+
+  /* 整块区域也稍微收窄一点，让它更精致 */
+  .post-media-display {
+    max-width: 80%;
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
 
 /* 左右箭头按钮样式 */
@@ -43,14 +59,12 @@
     background-color 0.15s ease;
 }
 
-/* hover 整个区域时显示按钮 + 半透明白色 */
 .post-media-display:hover .carousel-control-prev,
 .post-media-display:hover .carousel-control-next {
   opacity: 1;
   background-color: rgba(255, 255, 255, 0.75);
 }
 
-/* 箭头字符本身 */
 .post-media-display-arrow {
   display: flex;
   align-items: center;
@@ -71,9 +85,7 @@
   margin-bottom: 8px;
 }
 
-.post-media-display
-  .carousel-indicators
-  [data-bs-target] {
+.post-media-display .carousel-indicators [data-bs-target] {
   width: 7px;
   height: 7px;
   border-radius: 50%;
@@ -82,9 +94,7 @@
   margin: 0 4px;
 }
 
-.post-media-display
-  .carousel-indicators
-  .active {
+.post-media-display .carousel-indicators .active {
   background-color: #fff;
 }
 
