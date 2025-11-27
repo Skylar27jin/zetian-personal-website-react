@@ -61,8 +61,8 @@ export default function PostCard(props: PostCardProps) {
     post.media_urls.length > 0;
   const firstImage = hasImage ? post.media_urls[0] : null;
 
-  // 动态判断宽高比
-  const [imgRatio, setImgRatio] = useState<number | null>(null); // h / w
+  // 动态判断宽高比（h / w）
+  const [imgRatio, setImgRatio] = useState<number | null>(null);
 
   const handleImageLoad = (
     e: React.SyntheticEvent<HTMLImageElement, Event>
@@ -73,7 +73,7 @@ export default function PostCard(props: PostCardProps) {
     }
   };
 
-  // 特别“长”的图片才裁切
+  // 只有特别“长/宽”的才裁切
   const isExtremeAspect =
     imgRatio !== null && (imgRatio > 2.5 || imgRatio < 0.4);
 
@@ -83,63 +83,69 @@ export default function PostCard(props: PostCardProps) {
 
   return (
     <Card
-      className="shadow-sm border-0"
+      className="shadow-sm border-0 overflow-hidden"
       onClick={handleCardClick}
       style={{ cursor: "pointer" }}
     >
-      <Card.Body>
-        {/* 顶部封面图：正常比例不裁切，极端比例裁中间；都限制高度避免过大 */}
-        {firstImage && (
-          <div className="mb-3">
-            <div
+      {/* 顶部图片行：黑色背景 + 圆角（由 Card 自己裁剪） */}
+      {firstImage && (
+        <div
+          style={{
+            width: "100%",
+            backgroundColor: "#000",
+          }}
+        >
+          <div
+            style={
+              isExtremeAspect
+                ? {
+                    width: "100%",
+                    height: 220,
+                    maxHeight: 220,
+                    overflow: "hidden",
+                  }
+                : {
+                    width: "100%",
+                    maxHeight: 260,
+                    overflow: "hidden",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }
+            }
+          >
+            <img
+              src={firstImage}
+              alt="post cover"
+              onLoad={handleImageLoad}
               style={
                 isExtremeAspect
                   ? {
                       width: "100%",
-                      height: 220,
-                      maxHeight: 220,
-                      borderRadius: 12,
-                      overflow: "hidden",
+                      height: "100%",
+                      objectFit: "cover",
+                      display: "block",
                     }
                   : {
-                      width: "100%",
+                      maxWidth: "100%",
                       maxHeight: 260,
-                      borderRadius: 12,
-                      overflow: "hidden",
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
+                      width: "auto",
+                      height: "auto",
+                      objectFit: "contain",
+                      display: "block",
                     }
               }
-            >
-              <img
-                src={firstImage}
-                alt="post cover"
-                onLoad={handleImageLoad}
-                style={
-                  isExtremeAspect
-                    ? {
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover", // 极端比例裁中间
-                        display: "block",
-                      }
-                    : {
-                        maxWidth: "100%",
-                        maxHeight: 260,
-                        width: "auto",
-                        height: "auto",
-                        objectFit: "contain", // 正常比例完整显示
-                        display: "block",
-                      }
-                }
-              />
-            </div>
+            />
           </div>
-        )}
+        </div>
+      )}
 
+      <Card.Body className="pt-2">
         {/* 标题 + 右上角作者信息 / 菜单 */}
-        <Card.Title className="fw-semibold d-flex align-items-center justify-content-between">
+        <Card.Title
+          className="fw-semibold d-flex align-items-center justify-content-between mb-2"
+          style={{ marginTop: 0 }} // 贴近图片
+        >
           <span>{post.title}</span>
 
           <div className="d-flex align-items-center gap-2">
