@@ -4,6 +4,7 @@
   line-height: 1.6;
 }
 
+/* emoji 图片 */
 .rc-content img.emoji-inline {
   width: 20px;
   height: 20px;
@@ -11,12 +12,14 @@
   margin: 0 2px;
 }
 
-/* 多行省略：可用于卡片摘要 */
-.clamp-2, .clamp-3, .clamp-4 {
+/* 多行省略：只对同时拥有 rc-content + clamp-* 的元素生效 */
+.rc-content[class*="clamp-"] {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.clamp-2 { line-clamp: 2; }
-.clamp-3 { line-clamp: 3; }
-.clamp-4 { line-clamp: 4; }
+
+/* 针对具体行数 */
+.rc-content.clamp-2 { -webkit-line-clamp: 2; }
+.rc-content.clamp-3 { -webkit-line-clamp: 3; }
+.rc-content.clamp-4 { -webkit-line-clamp: 4; }

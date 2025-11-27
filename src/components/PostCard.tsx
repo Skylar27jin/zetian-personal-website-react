@@ -7,7 +7,7 @@ import { Link, useNavigate } from "react-router-dom";
 import formatTime from "../pkg/TimeFormatter";
 import RichContent from "./RichContent";
 
-const MAX_LINES = 6;
+const MAX_LINES = 3;
 
 interface PostCardProps {
   post: Post;
@@ -47,8 +47,9 @@ export default function PostCard(props: PostCardProps) {
       : undefined;
 
   const [expanded, setExpanded] = useState(false);
-  const lines = (post.content || "").split("\n");
-  const isLong = lines.length > MAX_LINES;
+  const text = post.content || "";
+  const lineCount = text.split(/\r?\n/).length;
+  const isLong = lineCount > MAX_LINES || text.length > 80;
 
   const showEdit = isOwner && !!onEdit;
   const showDelete = isOwner && !!onDelete;
@@ -238,7 +239,6 @@ export default function PostCard(props: PostCardProps) {
           ) : (
             <>
               <RichContent content={post.content} clampLines={MAX_LINES} />
-              {isLong && <span> …</span>}
             </>
           )}
         </div>
@@ -251,10 +251,10 @@ export default function PostCard(props: PostCardProps) {
               className="p-0"
               onClick={(e) => {
                 e.stopPropagation();
-                setExpanded((v) => !v);
+                navigate(`/post/${post.id}`);
               }}
             >
-              {expanded ? "Show less" : "Show more"}
+              Show more
             </Button>
           </div>
         )}
