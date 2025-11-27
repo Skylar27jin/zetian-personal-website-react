@@ -26,6 +26,7 @@ import type {
   FavPostReq,
   UnfavPostReq,
   UserFlagPostResp,
+  UploadPostMediaResp,
 } from "../types/post";
 
 const BASE_URL = import.meta.env.VITE_HERTZ_BASE_URL;
@@ -159,4 +160,25 @@ export async function favPost(postId: number): Promise<UserFlagPostResp> {
 export async function unfavPost(postId: number): Promise<UserFlagPostResp> {
   const body: UnfavPostReq = { post_id: postId };
   return postJSON<UserFlagPostResp>(`${BASE_URL}/post/unfav`, body);
+}
+
+
+
+
+export async function uploadPostMedia(files: File[]): Promise<string[]> {
+  const form = new FormData();
+  files.forEach((f) => form.append("images", f)); // 字段名要和后端 form.File["images"] 对齐
+
+  const resp = await fetch(`${BASE_URL}/post/media/upload`, {
+    method: "POST",
+    body: form,
+    credentials: "include", // 带上 JWT cookie
+  });
+
+  const data: UploadPostMediaResp = await resp.json();
+  if (!resp.ok || !data.isSuccessful) {
+    throw new Error(data.errorMessage || `Upload failed: ${resp.status}`);
+  }
+
+  return data.urls ?? [];
 }

@@ -176,3 +176,16 @@ export interface UserFlagPostResp {
   isSuccessful: boolean;
   errorMessage: string;
 }
+
+
+/*
+uploadPostMediaReq:
+should cantain images = a list of images
+*/
+
+export interface UploadPostMediaResp {
+  isSuccessful: boolean;
+  errorMessage: string;
+  urls: string[] | null;
+}
+
