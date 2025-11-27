@@ -610,7 +610,7 @@ const Editor: React.FC<EditorProps> = ({
       </div>
 
       {/* 输入区 */}
-      <ScrollablePanel maxHeight="50vh" showProgress>
+      <ScrollablePanel maxHeight="70vh" showProgress>
         <div
           ref={divRef}
           className="editor-editable"

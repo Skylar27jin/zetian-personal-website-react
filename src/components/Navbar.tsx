@@ -37,39 +37,32 @@ export default function MyNavbar() {
       const y = window.scrollY || 0;
       if (ticking.current) return;
 
+      ticking.current = true;
       window.requestAnimationFrame(() => {
-        if (y < 8) {
-          if (!showTopRow) setShowTopRow(true);
-          lastY.current = y;
-          lastToggleY.current = y;
-          ticking.current = false;
-          return;
-        }
-
-        const delta = y - lastY.current;
+        const prevY = lastY.current;
+        const delta = y - prevY; // >0 向下滚，<0 向上滚
         lastY.current = y;
 
+        // 过滤掉极小抖动
         if (Math.abs(delta) <= NOISE) {
           ticking.current = false;
           return;
         }
 
-        if (!showTopRow) {
-          if (lastToggleY.current - y >= SHOW_DELTA) {
-            setShowTopRow(true);
-            lastToggleY.current = y;
-          }
-        } else {
-          if (y > HIDE_MIN_Y && y - lastToggleY.current >= HIDE_DELTA && delta > 0) {
-            setShowTopRow(false);
-            lastToggleY.current = y;
-          }
+        if (delta > 0 && y > HIDE_MIN_Y) {
+          // 向下滚，滚过一定高度 -> 隐藏
+          if (showTopRow) setShowTopRow(false);
+        } else if (delta < 0) {
+          // 只要向上滚一点点 -> 立刻显示
+          if (!showTopRow) setShowTopRow(true);
         }
 
         ticking.current = false;
       });
-      ticking.current = true;
     };
+
+    // 初始化一下上一次位置
+    lastY.current = window.scrollY || 0;
 
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
