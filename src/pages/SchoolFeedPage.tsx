@@ -24,6 +24,7 @@ import {
 } from "../api/postApi";
 import { getAllSchools } from "../api/schoolApi";
 import type { School } from "../types/school";
+import { formatTimeAgo } from "../pkg/TimeFormatter";
 
 function PageShell({ children }: { children: React.ReactNode }) {
   return (
@@ -225,11 +226,6 @@ export default function SchoolFeedPage() {
           )}
         </p>
 
-        {oldestTime && (
-          <p className="text-muted small mb-0">
-            Oldest loaded post time: {oldestTime}
-          </p>
-        )}
       </header>
 
       {/* 学校选择：样式和 CreatePostPage 保持统一 */}

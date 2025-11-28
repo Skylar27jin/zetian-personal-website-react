@@ -1,5 +1,5 @@
 // src/hooks/usePersonalPosts.ts
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   getPersonalRecentPosts,
   likePost,
@@ -9,13 +9,45 @@ import {
 } from "../api/postApi";
 import type { Post } from "../types/post";
 
+// ------------------- 模块级缓存：跨路由切换保留 -------------------
+type PersonalCache = {
+  userId: number;
+  posts: Post[];
+  quotedPosts: Record<number, Post>;
+  hasMore: boolean;
+  oldestTime?: string;
+};
+
+let personalCache: PersonalCache | null = null;
+
+// ------------------- Hook 本体 -------------------
 export function usePersonalPosts(userId: number, enabled: boolean) {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [quotedPosts, setQuotedPosts] = useState<Record<number, Post>>({});
+  // 初始化时，看看缓存里是不是当前这个 user
+  const cached =
+    personalCache && personalCache.userId === userId ? personalCache : null;
+
+  const [posts, setPosts] = useState<Post[]>(() => cached?.posts ?? []);
+  const [quotedPosts, setQuotedPosts] = useState<Record<number, Post>>(
+    () => cached?.quotedPosts ?? {}
+  );
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [postsError, setPostsError] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(true);
-  const [oldestTime, setOldestTime] = useState<string | undefined>(undefined);
+  const [hasMore, setHasMore] = useState<boolean>(() => cached?.hasMore ?? true);
+  const [oldestTime, setOldestTime] = useState<string | undefined>(
+    () => cached?.oldestTime
+  );
+
+  // 每次 state 变化时，同步一份到模块级缓存里
+  useEffect(() => {
+    if (!enabled || !userId) return;
+    personalCache = {
+      userId,
+      posts,
+      quotedPosts,
+      hasMore,
+      oldestTime,
+    };
+  }, [enabled, userId, posts, quotedPosts, hasMore, oldestTime]);
 
   const loadMore = useCallback(async () => {
     if (!enabled || loadingPosts || !hasMore) return;
@@ -52,11 +84,19 @@ export function usePersonalPosts(userId: number, enabled: boolean) {
           ...resp.quoted_posts,
         }));
       }
+
+      // 你目前没用 oldestTime，这里先简单记录一下（可选）
+      if (newPosts.length > 0) {
+        const last = newPosts[newPosts.length - 1];
+        setOldestTime(last.created_at);
+      }
     } catch (e: any) {
       setPostsError(e?.message || "Network error");
     } finally {
       setLoadingPosts(false);
     }
+    // 注意：这里的 posts.length 仍然在 deps 里，用来判断 before；
+    // 具体值通过 setPosts 的函数式更新保证正确。
   }, [enabled, loadingPosts, hasMore, posts.length, userId]);
 
   // ========= 点赞 / 取消点赞 / 收藏 / 取消收藏 =========
@@ -96,7 +136,7 @@ export function usePersonalPosts(userId: number, enabled: boolean) {
         );
       }
     },
-    [setPosts]
+    []
   );
 
   const handleUnlike = useCallback(
@@ -133,7 +173,7 @@ export function usePersonalPosts(userId: number, enabled: boolean) {
         );
       }
     },
-    [setPosts]
+    []
   );
 
   const handleFav = useCallback(
@@ -169,7 +209,7 @@ export function usePersonalPosts(userId: number, enabled: boolean) {
         );
       }
     },
-    [setPosts]
+    []
   );
 
   const handleUnfav = useCallback(
@@ -205,7 +245,7 @@ export function usePersonalPosts(userId: number, enabled: boolean) {
         );
       }
     },
-    [setPosts]
+    []
   );
 
   return {
