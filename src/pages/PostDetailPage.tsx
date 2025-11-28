@@ -12,7 +12,6 @@ import {
   Modal,
   Form,
   Badge,
-  Dropdown,
 } from "react-bootstrap";
 import { motion } from "framer-motion";
 
@@ -28,6 +27,8 @@ import {
   deletePost,
 } from "../api/postApi";
 import type { Post, GetPostByIDResp } from "../types/post";
+import PostActionsDropdown from "../components/PostActionsDropDown";
+
 
 import { Link } from "react-router-dom";
 import { getUser } from "../api/userApi";
@@ -90,7 +91,9 @@ export default function PostDetailPage() {
   // 删除中 loading
   const [deleting, setDeleting] = useState(false);
 
-  
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteCountdown, setDeleteCountdown] = useState(5);
+  const [deleteButtonEnabled, setDeleteButtonEnabled] = useState(false);
 
   // URL 参数非法
   if (Number.isNaN(postId)) {
@@ -195,6 +198,28 @@ export default function PostDetailPage() {
     };
   }, [post?.reply_to, post?.id]);
 
+  //delete countdown
+  useEffect(() => {
+    if (!showDeleteModal) return;
+
+    setDeleteCountdown(5);
+    setDeleteButtonEnabled(false);
+
+    const timerId = window.setInterval(() => {
+      setDeleteCountdown((prev) => {
+        if (prev <= 1) {
+          window.clearInterval(timerId);
+          setDeleteButtonEnabled(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      window.clearInterval(timerId);
+    };
+  }, [showDeleteModal]);
 
 
   const isOwner = !!post && !!viewerId && post.user_id === viewerId;
@@ -353,6 +378,8 @@ export default function PostDetailPage() {
         setActionError(resp.errorMessage || "Failed to delete post.");
         return;
       }
+      // 删除成功：关闭 modal 并返回上一页
+      setShowDeleteModal(false);
       navigate(-1);
     } catch (e: any) {
       setActionError(e?.message || "Network error while deleting.");
@@ -360,6 +387,7 @@ export default function PostDetailPage() {
       setDeleting(false);
     }
   };
+
 
   // ====================
   // 渲染
@@ -543,38 +571,13 @@ export default function PostDetailPage() {
 
                   {/* 三点菜单 */}
                   {isOwner && (
-                    <Dropdown align="end">
-                      <Dropdown.Toggle
-                        as="span"
-                        bsPrefix="post-detail-toggle"
-                        className="text-muted"
-                        style={{
-                          cursor: "pointer",
-                          padding: "2px 6px",
-                          fontSize: "20px",
-                          lineHeight: "1",
-                          background: "none",
-                          border: "none",
-                          boxShadow: "none",
-                        }}
-                      >
-                        ...
-                      </Dropdown.Toggle>
-
-                      <Dropdown.Menu>
-                        <Dropdown.Item onClick={openEditModal}>
-                          ✏️ Edit
-                        </Dropdown.Item>
-                        <Dropdown.Item
-                          className="text-danger"
-                          onClick={handleDeletePost}
-                          disabled={deleting}
-                        >
-                          🗑 Delete
-                        </Dropdown.Item>
-                      </Dropdown.Menu>
-                    </Dropdown>
+                    <PostActionsDropdown
+                      onEdit={openEditModal}
+                      onDelete={() => setShowDeleteModal(true)}
+                      deleting={deleting}
+                    />
                   )}
+
                 </div>
               </div>
 
@@ -670,6 +673,59 @@ export default function PostDetailPage() {
         </Container>
       </main>
 
+      {/* Delete Confirm Modal with 5s countdown */}
+      <Modal
+        show={showDeleteModal}
+        onHide={() => {
+          if (!deleting) {
+            setShowDeleteModal(false);
+          }
+        }}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Delete this post?</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>🗑️ This will permanently remove the post:</p>
+          <p className="fw-semibold">
+            “{post?.title ?? ""}”
+          </p>
+          <p className="small text-muted mb-2">
+            Hint: Do you really want to say good bye to the post? 🐈‍⬛
+          </p>
+          <p className="small">
+            {deleteButtonEnabled
+              ? "If you're sure, click the delete button below."
+              : `wait for ${deleteCountdown}s~ 👀`}
+          </p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => setShowDeleteModal(false)}
+            disabled={deleting}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            onClick={handleDeletePost}
+            disabled={!deleteButtonEnabled || deleting}
+          >
+            {deleting ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-2" />
+                Deleting…
+              </>
+            ) : (
+              "Yes, delete it"
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+
 
       {/* Edit Modal */}
       <Modal
@@ -692,13 +748,14 @@ export default function PostDetailPage() {
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Content</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={5}
+              <Editor
                 value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
+                onChange={setEditContent}
+                placeholder="Edit your post... You can use gopher emojis!"
+                minRows={5}
               />
             </Form.Group>
+
           </Form>
           {editSaving && (
             <div className="text-muted small">

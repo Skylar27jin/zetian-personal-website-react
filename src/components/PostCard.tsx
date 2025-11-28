@@ -6,6 +6,7 @@ import type { Post } from "../types/post";
 import { Link, useNavigate } from "react-router-dom";
 import formatTime from "../pkg/TimeFormatter";
 import RichContent from "./RichContent";
+import PostActionsDropdown from "./PostActionsDropDown";
 
 const MAX_LINES = 3;
 
@@ -188,52 +189,17 @@ export default function PostCard(props: PostCardProps) {
               </Badge>
             )}
 
-            {hasMenu && (
-              <Dropdown
-                align="end"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Dropdown.Toggle
-                  as="span"
-                  bsPrefix="post-card-toggle"
-                  className="text-muted"
-                  style={{
-                    cursor: "pointer",
-                    padding: "2px 6px",
-                    fontSize: "20px",
-                    lineHeight: "1",
-                    background: "none",
-                    border: "none",
-                    boxShadow: "none",
-                  }}
-                >
-                  ...
-                </Dropdown.Toggle>
+          {hasMenu && (
+            <div onClick={(e) => e.stopPropagation()}>
+              <PostActionsDropdown
+                onEdit={showEdit ? () => onEdit?.(post) : undefined}
+                onDelete={showDelete ? () => onDelete?.(post) : undefined}
+                onReport={showReport ? () => onReport?.(post) : undefined}
+                // deleting 可以从外面传进来，如果以后想在菜单里禁用 Delete
+              />
+            </div>
+          )}
 
-                <Dropdown.Menu>
-                  {showEdit && (
-                    <Dropdown.Item onClick={() => onEdit?.(post)}>
-                      ✏️ Edit
-                    </Dropdown.Item>
-                  )}
-
-                  {showDelete && (
-                    <Dropdown.Item
-                      className="text-danger"
-                      onClick={() => onDelete?.(post)}
-                    >
-                      🗑 Delete
-                    </Dropdown.Item>
-                  )}
-
-                  {showReport && (
-                    <Dropdown.Item onClick={() => onReport?.(post)}>
-                      Report
-                    </Dropdown.Item>
-                  )}
-                </Dropdown.Menu>
-              </Dropdown>
-            )}
           </div>
         </Card.Title>
 
