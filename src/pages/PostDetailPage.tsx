@@ -2,8 +2,8 @@
 
 import RichContent from "../components/RichContent";
 import Editor from "../components/Editor";
-import React, { useEffect, useState} from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   Container,
   Spinner,
@@ -29,25 +29,25 @@ import {
 import type { Post, GetPostByIDResp } from "../types/post";
 import PostActionsDropdown from "../components/PostActionsDropDown";
 
-
-import { Link } from "react-router-dom";
 import { getUser } from "../api/userApi";
 import GopherLoader from "../components/GopherLoader";
 import PostMediaDisplay from "../components/PostMediaDisplay";
 import ScrollablePanel from "../components/ScrollPanel";
-
+import ReplyPreview from "../components/ReplyPreview";
 
 function formatTime(isoString: string): string {
   try {
     const date = new Date(isoString);
-    return date.toLocaleString("en-US", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    }).replace(",", "");
+    return date
+      .toLocaleString("en-US", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      })
+      .replace(",", "");
   } catch {
     return isoString;
   }
@@ -64,7 +64,6 @@ export default function PostDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-
   // ========= reply_to 原帖信息 =========
   interface ParentMeta {
     post: Post;
@@ -73,11 +72,8 @@ export default function PostDetailPage() {
 
   const [parentMeta, setParentMeta] = useState<ParentMeta | null>(null);
   const [parentLoading, setParentLoading] = useState(false);
-  const [parentExpanded, setParentExpanded] = useState(false);
 
-  const MAX_PARENT_LINES = 3;
   const DEFAULT_AVATAR = "../gopher_front.png";
-
 
   // edit 相关
   const [editingPost, setEditingPost] = useState<Post | null>(null);
@@ -94,6 +90,9 @@ export default function PostDetailPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteCountdown, setDeleteCountdown] = useState(5);
   const [deleteButtonEnabled, setDeleteButtonEnabled] = useState(false);
+
+  // 举报 Modal
+  const [showReportModal, setShowReportModal] = useState(false);
 
   // URL 参数非法
   if (Number.isNaN(postId)) {
@@ -141,8 +140,7 @@ export default function PostDetailPage() {
     };
   }, [postId]);
 
-
-  // if 当前 post 有 reply_to 时，懒加载原帖信息
+  // 当前 post 有 reply_to 时，懒加载原帖信息
   useEffect(() => {
     let cancelled = false;
 
@@ -169,7 +167,7 @@ export default function PostDetailPage() {
         const parentPost = resp.post;
         const meta: ParentMeta = { post: parentPost };
 
-        // 2) 顺手拉一下作者名（失败就算了，用 user_id 兜底）
+        // 2) 拉作者名（失败就算了）
         try {
           const userResp = await getUser({ id: parentPost.user_id });
           if (!cancelled && userResp.isSuccessful) {
@@ -198,7 +196,7 @@ export default function PostDetailPage() {
     };
   }, [post?.reply_to, post?.id]);
 
-  //delete countdown
+  // delete countdown
   useEffect(() => {
     if (!showDeleteModal) return;
 
@@ -220,7 +218,6 @@ export default function PostDetailPage() {
       window.clearInterval(timerId);
     };
   }, [showDeleteModal]);
-
 
   const isOwner = !!post && !!viewerId && post.user_id === viewerId;
 
@@ -328,6 +325,27 @@ export default function PostDetailPage() {
   };
 
   // ====================
+  // Reply：跳到发帖页，并带上 reply_to 信息
+  // ====================
+  const handleReply = () => {
+    if (!post) return;
+    if (!viewerId || authError) {
+      setActionError("Please log in to reply to this post.");
+      return;
+    }
+
+    navigate("/post/create", {
+      state: {
+        replyToPost: {
+          id: post.id,
+          title: post.title,
+          userName: post.user_name,
+        },
+      },
+    });
+  };
+
+  // ====================
   // Edit
   // ====================
   const openEditModal = () => {
@@ -378,7 +396,6 @@ export default function PostDetailPage() {
         setActionError(resp.errorMessage || "Failed to delete post.");
         return;
       }
-      // 删除成功：关闭 modal 并返回上一页
       setShowDeleteModal(false);
       navigate(-1);
     } catch (e: any) {
@@ -387,7 +404,6 @@ export default function PostDetailPage() {
       setDeleting(false);
     }
   };
-
 
   // ====================
   // 渲染
@@ -415,9 +431,7 @@ export default function PostDetailPage() {
                 </span>
               ) : (
                 <span className="text-muted small">
-                  {authError
-                    ? "Viewing as guest."
-                    : `Viewing as ${username}.`}
+                  {authError ? "Viewing as guest." : `Viewing as ${username}.`}
                 </span>
               )}
             </div>
@@ -459,7 +473,8 @@ export default function PostDetailPage() {
                   {/* avatar */}
                   <img
                     src={
-                      post.user_avatar_url && post.user_avatar_url.trim().length > 0
+                      post.user_avatar_url &&
+                      post.user_avatar_url.trim().length > 0
                         ? post.user_avatar_url
                         : DEFAULT_AVATAR
                     }
@@ -483,19 +498,20 @@ export default function PostDetailPage() {
                         className="text-decoration-none"
                         style={{ fontWeight: 500 }}
                       >
-                        {post.user_name ? `@${post.user_name}` : `User #${post.user_id}`}
+                        {post.user_name
+                          ? `@${post.user_name}`
+                          : `User #${post.user_id}`}
                       </Link>
                     </div>
                     <div>
                       {formatTime(post.created_at)}
                       {" · "}
                       {post.school_name}
+                      {post.category_name && <> · {post.category_name}</>}
                       {post.location && <> · {post.location}</>}
                     </div>
                   </div>
                 </div>
-
-
 
                 {/* tags */}
                 {post.tags && post.tags.length > 0 && (
@@ -521,136 +537,89 @@ export default function PostDetailPage() {
                       mediaType={post.media_type}
                       mediaUrls={post.media_urls}
                     />
-                )}
-
-
-              {/* 正文：可滚动 + 进度条 */}
-              <ScrollablePanel maxHeight="70vh">
-                <RichContent content={post.content} />
-              </ScrollablePanel>
-
-
-               {/* 底部统计 + 操作区 */}
-              <hr className="my-4" />
-
-              <div className="d-flex align-items-center text-muted small">
-
-                {/* 左侧统计 */}
-                <div>
-                  💬 {post.comment_count} · 🔁 {post.share_count} · 👁 {post.view_count}
-                </div>
-
-                {/* 右侧按钮组 —— 用 ms-auto 推到最右边 */}
-                <div className="d-inline-flex gap-2 ms-auto align-items-center">
-
-                  {/* Like */}
-                  <motion.div whileTap={{ scale: 1.08 }}>
-                    <Button
-                      size="sm"
-                      variant={post.is_liked_by_user ? "primary" : "outline-secondary"}
-                      onClick={() =>
-                        post.is_liked_by_user ? handleUnlike(post.id) : handleLike(post.id)
-                      }
-                    >
-                      {post.is_liked_by_user ? "💙" : "👍"} {post.like_count}
-                    </Button>
-                  </motion.div>
-
-                  {/* Fav */}
-                  <motion.div whileTap={{ scale: 1.08 }}>
-                    <Button
-                      size="sm"
-                      variant={post.is_fav_by_user ? "warning" : "outline-secondary"}
-                      onClick={() =>
-                        post.is_fav_by_user ? handleUnfav(post.id) : handleFav(post.id)
-                      }
-                    >
-                      {post.is_fav_by_user ? "🌟" : "⭐"} {post.fav_count}
-                    </Button>
-                  </motion.div>
-
-                  {/* 三点菜单 */}
-                  {isOwner && (
-                    <PostActionsDropdown
-                      onEdit={openEditModal}
-                      onDelete={() => setShowDeleteModal(true)}
-                      deleting={deleting}
-                    />
                   )}
 
-                </div>
-              </div>
+                {/* 正文：可滚动 + 进度条 */}
+                <ScrollablePanel maxHeight="70vh">
+                  <RichContent content={post.content} />
+                </ScrollablePanel>
 
+                {/* 底部统计 + 操作区 */}
+                <hr className="my-4" />
+
+                <div className="d-flex align-items-center text-muted small">
+                  {/* 左侧统计 */}
+                  <div>
+                    💬 {post.comment_count} · 🔁 {post.share_count} · 👁{" "}
+                    {post.view_count}
+                  </div>
+
+                  {/* 右侧按钮组 —— 用 ms-auto 推到最右边 */}
+                  <div className="d-inline-flex gap-2 ms-auto align-items-center">
+                    {/* Like */}
+                    <motion.div whileTap={{ scale: 1.08 }}>
+                      <Button
+                        size="sm"
+                        variant={
+                          post.is_liked_by_user
+                            ? "primary"
+                            : "outline-secondary"
+                        }
+                        onClick={() =>
+                          post.is_liked_by_user
+                            ? handleUnlike(post.id)
+                            : handleLike(post.id)
+                        }
+                      >
+                        {post.is_liked_by_user ? "💙" : "👍"} {post.like_count}
+                      </Button>
+                    </motion.div>
+
+                    {/* Fav */}
+                    <motion.div whileTap={{ scale: 1.08 }}>
+                      <Button
+                        size="sm"
+                        variant={
+                          post.is_fav_by_user
+                            ? "warning"
+                            : "outline-secondary"
+                        }
+                        onClick={() =>
+                          post.is_fav_by_user
+                            ? handleUnfav(post.id)
+                            : handleFav(post.id)
+                        }
+                      >
+                        {post.is_fav_by_user ? "🌟" : "⭐"} {post.fav_count}
+                      </Button>
+                    </motion.div>
+
+                    {/* 三点菜单：自己 = Edit/Delete，别人 = Report；所有登录用户都可以 Reply */}
+                    <PostActionsDropdown
+                      onEdit={isOwner ? openEditModal : undefined}
+                      onDelete={
+                        isOwner ? () => setShowDeleteModal(true) : undefined
+                      }
+                      onReport={
+                        !isOwner ? () => setShowReportModal(true) : undefined
+                      }
+                      onReply={viewerId ? handleReply : undefined}
+                      deleting={isOwner ? deleting : false}
+                    />
+                  </div>
+                </div>
 
                 {/* 如果是 reply 帖，展示原帖预览 */}
                 {post.reply_to && (
-                <div className="mb-3">
-
-                    <Link
-                    to={`/post/${post.reply_to}`}
-                    className="text-decoration-none text-reset"
-                    >
-                    <div
-                        className="p-3 rounded-3"
-                        style={{
-                        backgroundColor: "#f5f5f5",
-                        borderLeft: "3px solid #d0d0d0",
-                        }}
-                    >
-                        {parentLoading && !parentMeta && (
-                          <div className="text-muted small d-flex align-items-center gap-2">
-                            <GopherLoader size={40} />
-                            <span>Loading original post…</span>
-                          </div>
-                        )}
-                        <div className="text-muted small mb-1 text-uppercase">
-                            Replying to
-                        </div>
-                        {!parentLoading && parentMeta && (
-                          <>
-                            {/* 作者 + 时间 + avatar */}
-                            <div className="d-flex justify-content-between align-items-center mb-1">
-                              <div className="d-flex align-items-center gap-2">
-                                <img
-                                  src={
-                                    parentMeta.post.user_avatar_url &&
-                                    parentMeta.post.user_avatar_url.trim().length > 0
-                                      ? parentMeta.post.user_avatar_url
-                                      : DEFAULT_AVATAR
-                                  }
-                                  alt={parentMeta.authorName || `user${parentMeta.post.user_id}`}
-                                  style={{
-                                    width: 28,
-                                    height: 28,
-                                    borderRadius: "50%",
-                                    objectFit: "cover",
-                                    border: "1px solid #ddd",
-                                  }}
-                                />
-                                <div className="fw-semibold">
-                                  {parentMeta.authorName
-                                    ? `@${parentMeta.authorName}`
-                                    : `User #${parentMeta.post.user_id}`}
-                                </div>
-                              </div>
-                              <div className="text-muted small">
-                                {formatTime(parentMeta.post.created_at)}
-                              </div>
-                            </div>
-                            {/* 后面标题/内容那部分保持不动 */}
-                          </>
-                        )}
-
-
-                        {/* 原帖没拉到的兜底文案 */}
-                        {!parentLoading && !parentMeta && (
-                        <div className="text-muted small fst-italic">
-                            Original post not found (maybe deleted).
-                        </div>
-                        )}
-                    </div>
-                    </Link>
-                </div>
+                  <div className="mb-3 mt-3">
+                    <ReplyPreview
+                      replyToPostId={post.reply_to}
+                      parentPost={parentMeta?.post}
+                      parentAuthorName={parentMeta?.authorName}
+                      parentLoading={parentLoading}
+                      maxLines={3}
+                    />
+                  </div>
                 )}
               </section>
 
@@ -688,9 +657,7 @@ export default function PostDetailPage() {
         </Modal.Header>
         <Modal.Body>
           <p>🗑️ This will permanently remove the post:</p>
-          <p className="fw-semibold">
-            “{post?.title ?? ""}”
-          </p>
+          <p className="fw-semibold">“{post?.title ?? ""}”</p>
           <p className="small text-muted mb-2">
             Hint: Do you really want to say good bye to the post? 🐈‍⬛
           </p>
@@ -715,7 +682,11 @@ export default function PostDetailPage() {
           >
             {deleting ? (
               <>
-                <Spinner animation="border" size="sm" className="me-2" />
+                <Spinner
+                  animation="border"
+                  size="sm"
+                  className="me-2"
+                />
                 Deleting…
               </>
             ) : (
@@ -725,7 +696,31 @@ export default function PostDetailPage() {
         </Modal.Footer>
       </Modal>
 
-
+      {/* Report Modal */}
+      <Modal
+        show={showReportModal}
+        onHide={() => setShowReportModal(false)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Report this post</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p className="mb-2">🚩 Thanks for helping keep the community safe.</p>
+          <p className="small text-muted mb-3">
+            Reporting system is not fully implemented yet.
+            For now this is just a placeholder UI.
+          </p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => setShowReportModal(false)}
+          >
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       {/* Edit Modal */}
       <Modal
@@ -755,7 +750,6 @@ export default function PostDetailPage() {
                 minRows={5}
               />
             </Form.Group>
-
           </Form>
           {editSaving && (
             <div className="text-muted small">
@@ -783,5 +777,3 @@ export default function PostDetailPage() {
     </div>
   );
 }
-
-

@@ -1,8 +1,8 @@
 // src/pages/CreatePostPage.tsx
 import React, { useEffect, useState } from "react";
-import { createPost, getPersonalRecentPosts, uploadPostMedia } from "../api/postApi";
-import type { CreatePostReq, CreatePostResp, Post } from "../types/post";
-import { useNavigate } from "react-router-dom";
+import { createPost, uploadPostMedia } from "../api/postApi";
+import type { CreatePostReq, CreatePostResp } from "../types/post";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Container,
   Form,
@@ -10,41 +10,54 @@ import {
   Spinner,
   Alert,
   Card,
-  Row,
-  Col,
 } from "react-bootstrap";
 import Navbar from "../components/Navbar";
 import { getAllSchools } from "../api/schoolApi";
 import type { School } from "../types/school";
+import { getAllCategories } from "../api/categoryApi";
+import type { Category } from "../types/category";
 import Editor from "../components/Editor";
 import PostMediaUploader from "../components/PostMediaUploader";
+
 const LS_KEYS = {
   userId: "me:id",
   email: "me:email",
   username: "me:username",
 } as const;
 
+type ReplyToPostState = {
+  replyToPost?: {
+    id: number;
+    title: string;
+    userName?: string | null;
+  };
+};
+
 export default function CreatePostPage() {
+  const navigate = useNavigate();
+  const routerLocation = useLocation();
+
+  const locationState = (routerLocation.state || {}) as ReplyToPostState;
+  const replyToPost = locationState.replyToPost;
+
+  const [replyToId] = useState<number | null>(replyToPost?.id ?? null);
+
   // -----------------------------
   // basic fields
   // -----------------------------
   const [schoolId, setSchoolId] = useState<number | null>(1);
+  const [categoryId, setCategoryId] = useState<number | null>(1); // 默认 General
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
 
-  // 新增字段
   const [location, setLocation] = useState("");
-  // 不再展示 mediaType / mediaUrlsInput；media type 在提交时自动判断
-  const [replyToId, setReplyToId] = useState<number | null>(null);
-
-  // 图片文件：仅在前端存 File[]
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
 
-  // 智能 tags：tags 数组 + 当前输入框内容
+  // tags
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
 
-  // UI & 状态
+  // UI state
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -53,11 +66,9 @@ export default function CreatePostPage() {
   const [schoolsLoading, setSchoolsLoading] = useState(false);
   const [schoolSearch, setSchoolSearch] = useState("");
 
-  // 自己的帖子（用来选 ReplyTo）
-  const [myPosts, setMyPosts] = useState<Post[]>([]);
-  const [myPostsLoading, setMyPostsLoading] = useState(false);
-
-  const navigate = useNavigate();
+  // 板块相关
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
 
   // -----------------------------
   // 加载学校列表 /school/all
@@ -92,37 +103,28 @@ export default function CreatePostPage() {
   }, []);
 
   // -----------------------------
-  // 加载“自己的帖子”用于 Reply To 下拉选择
+  // 加载板块列表 /category/all
   // -----------------------------
   useEffect(() => {
-    const rawUserId = localStorage.getItem(LS_KEYS.userId);
-    if (!rawUserId) return; // 未登录就不用拉自己的帖子
-
-    const userId = Number(rawUserId);
-    if (Number.isNaN(userId)) return;
-
     let cancelled = false;
 
     (async () => {
       try {
-        setMyPostsLoading(true);
-        const resp = await getPersonalRecentPosts({
-          user_id: userId,
-          limit: 50,
-        });
+        setCategoriesLoading(true);
+        const resp = await getAllCategories();
         if (cancelled) return;
 
         if (!resp.isSuccessful) {
-          console.warn("getPersonalRecentPosts failed:", resp.errorMessage);
+          console.warn("getAllCategories failed:", resp.errorMessage);
           return;
         }
 
-        setMyPosts(resp.posts || []);
+        setCategories(resp.categories || []);
       } catch (e) {
-        console.error("getPersonalRecentPosts error:", e);
+        console.error("getAllCategories error:", e);
       } finally {
         if (!cancelled) {
-          setMyPostsLoading(false);
+          setCategoriesLoading(false);
         }
       }
     })();
@@ -163,18 +165,17 @@ export default function CreatePostPage() {
     try {
       setLoading(true);
 
-      // 1) 如果有图片文件，先上传到 /post/media/upload -> S3
+      // 1) 上传图片
       let mediaUrls: string[] = [];
       if (mediaFiles.length > 0) {
         setMessage("Uploading images to S3…");
         mediaUrls = await uploadPostMedia(mediaFiles);
       }
 
-      // 2) 构造请求体（带上可选字段）
-      // media_type 自动判断：有图 = "image"，没图 = "text"
       const mediaType: "text" | "image" | "video" =
         mediaUrls.length > 0 ? "image" : "text";
 
+      // 2) 构造请求
       const req: CreatePostReq = {
         user_id: userId,
         school_id: schoolId,
@@ -192,8 +193,13 @@ export default function CreatePostPage() {
       if (mediaUrls.length > 0) {
         req.media_urls = mediaUrls;
       }
+      if (categoryId && categoryId > 0) {
+        // 需要在 types/post.ts 里给 CreatePostReq 加上可选字段 category_id?: number;
+        (req as any).category_id = categoryId;
+      }
       if (replyToId && replyToId > 0) {
-        req.reply_to = replyToId;
+        // 后端已经支持 reply_to
+        (req as any).reply_to = replyToId;
       }
 
       setMessage("Creating post…");
@@ -209,10 +215,10 @@ export default function CreatePostPage() {
         setTitle("");
         setContent("");
         setLocation("");
-        setReplyToId(null);
         setTags([]);
         setTagInput("");
         setMediaFiles([]);
+        setCategoryId(1);
 
         setTimeout(() => navigate("/me"), 3000);
       } else {
@@ -232,21 +238,16 @@ export default function CreatePostPage() {
   const filteredSchools = schools.filter((s) => {
     if (!schoolSearch.trim()) return true;
     const q = schoolSearch.trim().toLowerCase();
+    const shortName = (s.short_name || "").toLowerCase();
     return (
       s.name.toLowerCase().includes(q) ||
-      s.short_name.toLowerCase().includes(q) ||
+      shortName.includes(q) ||
       (s.aliases || []).some((a) => a.toLowerCase().includes(q))
     );
   });
 
-  const selectedSchool = schools.find((s) => s.id === schoolId);
-
-  // 简单截断标题用
-  const truncate = (s: string, n: number) =>
-    s.length <= n ? s : s.slice(0, n - 1) + "…";
-
   // -----------------------------
-  // tags 智能输入：回车确认一个 tag，最多 10 个
+  // tags 输入
   // -----------------------------
   const handleTagKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (
     e
@@ -255,9 +256,8 @@ export default function CreatePostPage() {
       e.preventDefault();
       const v = tagInput.trim();
       if (!v) return;
-      if (tags.length >= 10) return; // hard limit
+      if (tags.length >= 10) return;
       if (tags.includes(v)) {
-        // 简单防重复
         setTagInput("");
         return;
       }
@@ -274,12 +274,44 @@ export default function CreatePostPage() {
     <div className="bg-light min-vh-100 d-flex flex-column">
       <Navbar />
       <main className="flex-grow-1 py-4">
-        <Container style={{ maxWidth: "720px" }}>
-          <Card className="p-4 shadow-sm border-0">
-            <Card.Body>
-              <h1 className="fw-bold mb-4 text-center">Create a New Post</h1>
+        <Container style={{ maxWidth: "800px" }}>
+          <Card
+            className="shadow-sm border-0"
+            style={{
+              borderRadius: 18,
+              background:
+                "radial-gradient(circle at top left, #fffefe, #f7f9ff 45%, #f5fbff 100%)",
+            }}
+          >
+            <Card.Body className="p-4 p-md-5">
+              <h1 className="fw-bold mb-1 text-center">Create a New Post</h1>
+              <p className="text-muted text-center mb-4 small">
+                Choose your school &amp; category, then share your thoughts.
+              </p>
 
               <Form onSubmit={handleSubmit}>
+                {/* 如果是 reply 帖，给一个小卡片提示 */}
+                {replyToPost && (
+                  <div
+                    className="mb-3 p-3 rounded-3"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, rgba(244,244,255,0.95), rgba(230,245,255,0.95))",
+                      border: "1px solid #dde3ff",
+                    }}
+                  >
+                    <div className="text-muted small mb-1">Replying to</div>
+                    <div className="fw-semibold">
+                      {replyToPost.userName
+                        ? `@${replyToPost.userName}`
+                        : `User #${replyToPost.id}`}
+                    </div>
+                    <div className="small text-muted">
+                      “{replyToPost.title || "Untitled post"}”
+                    </div>
+                  </div>
+                )}
+
                 {/* School 选择：搜索 + 列表 */}
                 <Form.Group className="mb-3">
                   <Form.Label>School</Form.Label>
@@ -315,13 +347,11 @@ export default function CreatePostPage() {
                           <button
                             key={s.id}
                             type="button"
-                            className={`w-100 text-start btn btn-sm ${
-                              selected ? "btn-light" : "btn-light"
-                            }`}
+                            className="w-100 text-start btn btn-sm btn-light"
                             style={
                               selected
                                 ? {
-                                    backgroundColor: "#f3f3f3", // 非常浅的灰色
+                                    backgroundColor: "#f3f3f3",
                                     borderColor: "#e0e0e0",
                                   }
                                 : {}
@@ -341,6 +371,31 @@ export default function CreatePostPage() {
                   </div>
                 </Form.Group>
 
+                {/* Category 选择：下拉 */}
+                <Form.Group className="mb-3">
+                  <Form.Label>Category</Form.Label>
+                  <Form.Select
+                    value={categoryId ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (!v) {
+                        setCategoryId(null);
+                      } else {
+                        const num = Number(v);
+                        setCategoryId(Number.isNaN(num) ? null : num);
+                      }
+                    }}
+                    disabled={categoriesLoading}
+                  >
+                    <option value="">Select a category</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+
                 {/* Title */}
                 <Form.Group className="mb-3">
                   <Form.Label>Title</Form.Label>
@@ -353,12 +408,12 @@ export default function CreatePostPage() {
                   />
                 </Form.Group>
 
-                {/* Media Uploader（只选文件，不立即上传） */}
+                {/* Media Uploader */}
                 <PostMediaUploader
                   files={mediaFiles}
                   onFilesChange={setMediaFiles}
                 />
-                
+
                 {/* Content */}
                 <Form.Group className="mb-4">
                   <Form.Label>Content</Form.Label>
@@ -367,58 +422,25 @@ export default function CreatePostPage() {
                     onChange={setContent}
                     placeholder="My thoughts..."
                     autoFocus
-                    minRows={20}
+                    minRows={16}
                   />
                 </Form.Group>
 
-                {/* Extra: location + reply_to */}
-                <Row className="mb-3">
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label>Location (optional)</Form.Label>
-                      <Form.Control
-                        type="text"
-                        value={location}
-                        onChange={(e) => setLocation(e.target.value)}
-                        placeholder="e.g. Boston, MA"
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label>Reply To (optional)</Form.Label>
-                      <Form.Select
-                        value={replyToId ?? ""}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          if (!v) {
-                            setReplyToId(null);
-                          } else {
-                            const num = Number(v);
-                            setReplyToId(Number.isNaN(num) ? null : num);
-                          }
-                        }}
-                        disabled={myPostsLoading}
-                      >
-                        <option value="">No reply</option>
-                        {myPosts.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            #{p.id} · {truncate(p.title, 30)}
-                          </option>
-                        ))}
-                      </Form.Select>
-                      <Form.Text className="text-muted">
-                        Reply To one of your posts.
-                      </Form.Text>
-                    </Form.Group>
-                  </Col>
-                </Row>
+                {/* Location */}
+                <Form.Group className="mb-3">
+                  <Form.Label>Location (optional)</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="e.g. Boston, MA"
+                  />
+                </Form.Group>
 
                 {/* Tags */}
                 <Form.Group className="mb-3">
                   <Form.Label>Tags (optional)</Form.Label>
 
-                  {/* 已选 tags chips */}
                   <div className="mb-2 d-flex flex-wrap gap-2">
                     {tags.map((tag, idx) => (
                       <span
@@ -437,7 +459,6 @@ export default function CreatePostPage() {
                     ))}
                   </div>
 
-                  {/* 输入框：回车确认一个 tag */}
                   <Form.Control
                     type="text"
                     value={tagInput}
@@ -446,7 +467,7 @@ export default function CreatePostPage() {
                     placeholder="Type a tag~ max 10 tags"
                   />
                   <Form.Text className="text-muted">
-                    Press <b>Enter</b> to add; Max <b>{10}</b> tags.
+                    Press <b>Enter</b> to add; Max <b>10</b> tags.
                   </Form.Text>
                 </Form.Group>
 
@@ -474,7 +495,6 @@ export default function CreatePostPage() {
                 </div>
               </Form>
 
-              {/* Feedback message */}
               {message && (
                 <Alert
                   variant="info"

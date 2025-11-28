@@ -6,6 +6,7 @@ interface PostActionsDropdownProps {
   onEdit?: () => void;
   onDelete?: () => void;
   onReport?: () => void;
+  onReply?: () => void;
   deleting?: boolean;
 }
 
@@ -13,9 +14,10 @@ const PostActionsDropdown: React.FC<PostActionsDropdownProps> = ({
   onEdit,
   onDelete,
   onReport,
+  onReply,
   deleting = false,
 }) => {
-  const hasMenu = !!onEdit || !!onDelete || !!onReport;
+  const hasMenu = !!onEdit || !!onDelete || !!onReport || !!onReply;
   if (!hasMenu) return null;
 
   return (
@@ -38,6 +40,12 @@ const PostActionsDropdown: React.FC<PostActionsDropdownProps> = ({
       </Dropdown.Toggle>
 
       <Dropdown.Menu>
+        {onReply && (
+          <Dropdown.Item onClick={onReply}>
+            ↪️ Reply
+          </Dropdown.Item>
+        )}
+
         {onEdit && (
           <Dropdown.Item onClick={onEdit}>
             ✏️ Edit
@@ -56,7 +64,7 @@ const PostActionsDropdown: React.FC<PostActionsDropdownProps> = ({
 
         {onReport && (
           <Dropdown.Item onClick={onReport}>
-            Report
+            ⚠️ Report
           </Dropdown.Item>
         )}
       </Dropdown.Menu>

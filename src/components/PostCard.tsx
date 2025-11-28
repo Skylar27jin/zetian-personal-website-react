@@ -1,12 +1,13 @@
 // src/components/PostCard.tsx
 import React, { useState } from "react";
-import { Card, Button, Badge, Dropdown } from "react-bootstrap";
+import { Card, Button, Badge } from "react-bootstrap";
 import { motion } from "framer-motion";
 import type { Post } from "../types/post";
 import { Link, useNavigate } from "react-router-dom";
 import formatTime from "../pkg/TimeFormatter";
 import RichContent from "./RichContent";
 import PostActionsDropdown from "./PostActionsDropDown";
+import ReplyPreview from "./ReplyPreview";
 
 const MAX_LINES = 3;
 
@@ -83,8 +84,7 @@ export default function PostCard(props: PostCardProps) {
   };
 
   // avatar from api, fallback to simple placeholder (you can replace with your gopher)
-  const avatarSrc =
-    post.user_avatar_url|| `../gopher_front.png`;
+  const avatarSrc = post.user_avatar_url || `../gopher_front.png`;
 
   return (
     <Card
@@ -189,17 +189,15 @@ export default function PostCard(props: PostCardProps) {
               </Badge>
             )}
 
-          {hasMenu && (
-            <div onClick={(e) => e.stopPropagation()}>
-              <PostActionsDropdown
-                onEdit={showEdit ? () => onEdit?.(post) : undefined}
-                onDelete={showDelete ? () => onDelete?.(post) : undefined}
-                onReport={showReport ? () => onReport?.(post) : undefined}
-                // deleting 可以从外面传进来，如果以后想在菜单里禁用 Delete
-              />
-            </div>
-          )}
-
+            {hasMenu && (
+              <div onClick={(e) => e.stopPropagation()}>
+                <PostActionsDropdown
+                  onEdit={showEdit ? () => onEdit?.(post) : undefined}
+                  onDelete={showDelete ? () => onDelete?.(post) : undefined}
+                  onReport={showReport ? () => onReport?.(post) : undefined}
+                />
+              </div>
+            )}
           </div>
         </Card.Title>
 
@@ -239,57 +237,21 @@ export default function PostCard(props: PostCardProps) {
                 navigate(`/post/${post.id}`);
               }}
             >
-              Show more
+              more
             </Button>
           </div>
         )}
 
-        {/* reply info */}
+        {/* reply info（用 ReplyPreview 统一逻辑） */}
         {post.reply_to && (
           <div className="mt-2">
-            <Link
-              to={`/post/${post.reply_to}`}
-              className="text-muted text-decoration-none"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div
-                className="small p-2 rounded-3"
-                style={{
-                  backgroundColor: "#f5f5f5",
-                  borderLeft: "3px solid #d0d0d0",
-                }}
-              >
-                <div>
-                  <span className="me-1">↪ Replying to</span>
-                  {replyTarget?.user_name ? (
-                    <span className="fw-semibold">
-                      @{replyTarget.user_name}
-                    </span>
-                  ) : (
-                    <span className="fw-semibold">
-                      Post #{post.reply_to}
-                    </span>
-                  )}
-                </div>
-
-                <div className="text-muted">
-                  {replyTarget ? (
-                    <>
-                      <span className="fst-italic">
-                        “{replyTarget.title}”
-                      </span>
-                      <span className="ms-1">
-                        · {formatTime(replyTarget.created_at)}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="fst-italic">
-                      Original post not found
-                    </span>
-                  )}
-                </div>
-              </div>
-            </Link>
+            <ReplyPreview
+              replyToPostId={post.reply_to}
+              parentPost={replyTarget}
+              parentLoading={false}
+              // 这里预览少一点行，保持卡片紧凑
+              maxLines={2}
+            />
             <div style={{ whiteSpace: "pre-wrap" }}>{"\n"}</div>
           </div>
         )}
@@ -297,8 +259,8 @@ export default function PostCard(props: PostCardProps) {
         {/* meta + like/fav */}
         <div className="d-flex align-items-center text-muted small mb-2">
           <div className="flex-grow-1">
-            {post.school_name} ·{" "}
-            {formatTime(post.created_at, "relative")}
+            {post.category_name && <>{post.category_name} · </>}
+            {post.school_name} · {formatTime(post.created_at, "relative")}
             {post.location && <> · {post.location}</>}
           </div>
 
@@ -319,8 +281,7 @@ export default function PostCard(props: PostCardProps) {
                     : onLike(post.id);
                 }}
               >
-                {post.is_liked_by_user ? "🩷" : "👍"}{" "}
-                {post.like_count ?? 0}
+                {post.is_liked_by_user ? "🩷" : "👍"} {post.like_count ?? 0}
               </Button>
             </motion.div>
 
@@ -335,13 +296,10 @@ export default function PostCard(props: PostCardProps) {
                 }
                 onClick={(e) => {
                   e.stopPropagation();
-                  post.is_fav_by_user
-                    ? onUnfav(post.id)
-                    : onFav(post.id);
+                  post.is_fav_by_user ? onUnfav(post.id) : onFav(post.id);
                 }}
               >
-                {post.is_fav_by_user ? "🌟" : "⭐"}{" "}
-                {post.fav_count ?? 0}
+                {post.is_fav_by_user ? "🌟" : "⭐"} {post.fav_count ?? 0}
               </Button>
             </motion.div>
           </div>

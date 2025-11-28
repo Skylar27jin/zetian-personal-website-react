@@ -4,8 +4,12 @@ export interface Post {
   user_id: number;
   user_name?: string;
   user_avatar_url?: string | null;
+
   school_id: number;
   school_name: string;
+
+  category_id?: number;
+  category_name?: string;
 
   title: string;
   content: string;
@@ -62,6 +66,8 @@ export interface GetPostByIDResp {
 export interface CreatePostReq {
   user_id: number;
   school_id: number;
+
+  category_id?: number;
   title: string;
   content: string;
 
