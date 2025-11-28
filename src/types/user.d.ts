@@ -58,3 +58,12 @@ export interface GetUserResp {
   userName: string;
   id: number;
 }
+
+// export interface UploadAvatarReq {
+// }
+
+export interface UploadAvatarResp {
+  isSuccessful: boolean;
+  errorMessage: string;
+  avatar_url: string;
+}

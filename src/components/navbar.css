@@ -28,6 +28,17 @@
   z-index: 10;
 }
 
+/* 让头像图片适配圆形按钮 */
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+
+
 /* 强制覆盖 Bootstrap 在 navbar dropdown 里的规则 */
 .navbar .dropdown-menu {
   position: absolute !important;

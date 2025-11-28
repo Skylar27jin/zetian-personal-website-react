@@ -17,7 +17,7 @@ const FEED_TABS = [
 export default function MyNavbar() {
   const location = useLocation();
   // ⭐ 把 authLoading 一起取出来
-  const { authError, userId, username, authLoading } = useMeAuth();
+  const { authError, userId, username, authLoading, avatarUrl } = useMeAuth();
   const isLoggedIn = !!userId && !authError;
   const nav = useNavigate();
 
@@ -81,17 +81,20 @@ export default function MyNavbar() {
                 <span className="text-muted small">Loading…</span>
               ) : isLoggedIn ? (
                 // 2. 登录成功：显示头像 + 下拉菜单
-                <AvatarInitials
-                  username={username}
-                  onSettingsClick={() => nav("/settings")}
-                  onLogout={() => {
-                    localStorage.removeItem("me:id");
-                    localStorage.removeItem("me:email");
-                    localStorage.removeItem("me:username");
-                    LogoutUser({});
-                    window.location.href = "/login";
-                  }}
-                />
+              <AvatarInitials
+                username={username}
+                avatarUrl={avatarUrl}   // 新增
+                onSettingsClick={() => nav("/settings")}
+                onLogout={() => {
+                  localStorage.removeItem("me:id");
+                  localStorage.removeItem("me:email");
+                  localStorage.removeItem("me:username");
+                  localStorage.removeItem("me:avatarUrl"); // 记得一起清
+                  LogoutUser({});
+                  window.location.href = "/login";
+                }}
+              />
+
               ) : (
                 // 3. 未登录 或 /me 失败：显示 Login / Sign up 按钮
                 <>

@@ -8,6 +8,7 @@ import type {
   LogoutResp,
   ResetPasswordReq,
   ResetPasswordResp,
+  UploadAvatarResp,
 } from "../types/user";
 
 const BASE_URL = import.meta.env.VITE_HERTZ_BASE_URL;
@@ -125,4 +126,23 @@ export async function ResetPassword(req: ResetPasswordReq): Promise<ResetPasswor
 
   const resp = (await response.json()) as ResetPasswordResp;
   return resp;
+}
+
+export async function uploadAvatar(file: File): Promise<UploadAvatarResp> {
+  const form = new FormData();
+  form.append("avatar", file); // 后端 FormFile("avatar") 对应的字段名
+
+  const resp = await fetch(`${BASE_URL}/user/update-avatar`, {
+    method: "POST",
+    body: form,
+    credentials: "include", // 带上 JWT cookie
+  });
+
+  const data = (await resp.json()) as UploadAvatarResp;
+
+  if (!resp.ok || !data.isSuccessful) {
+    throw new Error(data.errorMessage || `Upload avatar failed: ${resp.status}`);
+  }
+
+  return data;
 }

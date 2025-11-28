@@ -10,39 +10,45 @@ function getInitials(name?: string | null) {
 
 export default function AvatarInitials({
   username,
+  avatarUrl,
   onSettingsClick,
   onLogout,
 }: {
   username?: string | null;
+  avatarUrl?: string | null;
   onSettingsClick?: () => void;
   onLogout?: () => void;
 }) {
   const initials = getInitials(username);
+  const hasAvatar = !!avatarUrl;
 
   return (
-  <Dropdown
-    align="start"
-    className="avatar-wrap"
-  >
-    <Dropdown.Toggle
-      id="avatar-dd"
-      variant="light"
-      className="avatar-toggle p-0 border-0"
-      title={username || "User"}
-    >
-      {initials}
-    </Dropdown.Toggle>
+    <Dropdown align="start" className="avatar-wrap">
+      <Dropdown.Toggle
+        id="avatar-dd"
+        variant="light"
+        className="avatar-toggle p-0 border-0"
+        title={username || "User"}
+      >
+        {hasAvatar ? (
+          <img
+            src={avatarUrl!}
+            alt={username || "avatar"}
+            className="avatar-img"
+          />
+        ) : (
+          initials
+        )}
+      </Dropdown.Toggle>
 
-    <Dropdown.Menu renderOnMount>
-
-      <Dropdown.Item onClick={onSettingsClick}>Settings</Dropdown.Item>
-      <Dropdown.Item href="/me">My Profile</Dropdown.Item>
-      <Dropdown.Divider />
-      <Dropdown.Item className="text-danger" onClick={onLogout}>
-        Logout
-      </Dropdown.Item>
-    </Dropdown.Menu>
-  </Dropdown>
-
+      <Dropdown.Menu renderOnMount>
+        <Dropdown.Item onClick={onSettingsClick}>Settings</Dropdown.Item>
+        <Dropdown.Item href="/me">My Profile</Dropdown.Item>
+        <Dropdown.Divider />
+        <Dropdown.Item className="text-danger" onClick={onLogout}>
+          Logout
+        </Dropdown.Item>
+      </Dropdown.Menu>
+    </Dropdown>
   );
 }
