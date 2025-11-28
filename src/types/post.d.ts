@@ -3,6 +3,7 @@ export interface Post {
   id: number;
   user_id: number;
   user_name?: string;
+  user_avatar_url?: string | null;
   school_id: number;
   school_name: string;
 

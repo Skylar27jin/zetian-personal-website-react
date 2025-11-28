@@ -12,7 +12,7 @@ import GopherLoadingPage from "./pages/GopherLoadingPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import SchoolFeedPage from "./pages/SchoolFeedPage";
-import AvatarSettingsPage from "./pages/Settings/AvatarSettingsPage";
+import SettingsPage from "./pages/Settings/SettingsPage";
 
 function App() {
   return (
@@ -33,9 +33,8 @@ function App() {
         <Route path="loading" element={<GopherLoadingPage />} />
         <Route path="reset-password" element={<ResetPasswordPage />} />
         <Route path="/school/:id?" element={<SchoolFeedPage />} />
-        <Route path="settings/avatar" element={<AvatarSettingsPage />} />
         <Route path="*" element={<NotFoundPage />} />
-
+        <Route path="/settings" element={<SettingsPage />} />
         
       </Routes>
     </BrowserRouter>

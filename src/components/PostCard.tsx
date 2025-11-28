@@ -62,7 +62,7 @@ export default function PostCard(props: PostCardProps) {
     post.media_urls.length > 0;
   const firstImage = hasImage ? post.media_urls[0] : null;
 
-  // 动态判断宽高比（h / w）
+  // dynamic image ratio
   const [imgRatio, setImgRatio] = useState<number | null>(null);
 
   const handleImageLoad = (
@@ -74,7 +74,6 @@ export default function PostCard(props: PostCardProps) {
     }
   };
 
-  // 只有特别“长/宽”的才裁切
   const isExtremeAspect =
     imgRatio !== null && (imgRatio > 2.5 || imgRatio < 0.4);
 
@@ -82,13 +81,17 @@ export default function PostCard(props: PostCardProps) {
     navigate(`/post/${post.id}`);
   };
 
+  // avatar from api, fallback to simple placeholder (you can replace with your gopher)
+  const avatarSrc =
+    post.user_avatar_url|| `../gopher_front.png`;
+
   return (
     <Card
       className="shadow-sm border-0 overflow-hidden"
       onClick={handleCardClick}
       style={{ cursor: "pointer" }}
     >
-      {/* 顶部图片行：黑色背景 + 圆角（由 Card 自己裁剪） */}
+      {/* top image */}
       {firstImage && (
         <div
           style={{
@@ -142,14 +145,32 @@ export default function PostCard(props: PostCardProps) {
       )}
 
       <Card.Body className="pt-2">
-        {/* 标题 + 右上角作者信息 / 菜单 */}
+        {/* title + author + menu */}
         <Card.Title
           className="fw-semibold d-flex align-items-center justify-content-between mb-2"
-          style={{ marginTop: 0 }} // 贴近图片
+          style={{ marginTop: 0 }}
         >
           <span>{post.title}</span>
 
           <div className="d-flex align-items-center gap-2">
+            {/* avatar */}
+            <img
+              src={avatarSrc}
+              alt={post.user_name || `user${post.user_id}`}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                objectFit: "cover",
+                border: "1px solid #ddd",
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/user/${post.user_id}`);
+              }}
+            />
+
+            {/* author name or Me badge */}
             {!isOwner && (
               <Link
                 to={`/user/${post.user_id}`}
@@ -232,14 +253,12 @@ export default function PostCard(props: PostCardProps) {
           </div>
         )}
 
-        {/* 正文 */}
+        {/* content */}
         <div className="mb-2">
           {expanded ? (
             <RichContent content={post.content} />
           ) : (
-            <>
-              <RichContent content={post.content} clampLines={MAX_LINES} />
-            </>
+            <RichContent content={post.content} clampLines={MAX_LINES} />
           )}
         </div>
 
@@ -259,7 +278,7 @@ export default function PostCard(props: PostCardProps) {
           </div>
         )}
 
-        {/* Reply 区 */}
+        {/* reply info */}
         {post.reply_to && (
           <div className="mt-2">
             <Link
