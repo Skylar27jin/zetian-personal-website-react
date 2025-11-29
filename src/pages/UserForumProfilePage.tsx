@@ -147,18 +147,6 @@ export default function UserProfilePage() {
               <Spinner animation="border" size="sm" /> Loading…
             </p>
           )}
-
-          {!authLoading && !userLoading && (
-            <p className="text-muted small mb-0">
-              {isSelf ? (
-                "You are viewing your own public posts."
-              ) : authError ? (
-                `You are viewing ${displayName}'s posts as a guest.`
-              ) : (
-                `You are viewing ${displayName}'s posts as ${username}.`
-              )}
-            </p>
-          )}
         </header>
 
         <div className="d-flex justify-content-center py-5">
@@ -209,17 +197,6 @@ export default function UserProfilePage() {
           </p>
         )}
 
-        {!authLoading && !userLoading && (
-          <p className="text-muted small mb-0">
-            {isSelf ? (
-              "You are viewing your own public posts."
-            ) : authError ? (
-              `You are viewing ${displayName}'s posts as a guest.`
-            ) : (
-              `You are viewing ${displayName}'s posts as ${username}.`
-            )}
-          </p>
-        )}
       </header>
 
       {/* post list */}

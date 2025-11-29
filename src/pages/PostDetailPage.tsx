@@ -604,51 +604,61 @@ export default function PostDetailPage() {
                           : `User #${post.user_id}`}
                       </Link>
 
+                      {/* 作者是否关注了当前 viewer：Follows you */}
+                      {!isOwner &&
+                        authorProfile &&
+                        !authorProfileLoading &&
+                        !authError &&
+                        authorProfile.followedYou && (
+                          <span className="badge bg-light text-muted border rounded-pill small">
+                            Followed you
+                          </span>
+                        )}
+
                       {/* Follow 按钮（不是自己 + 已登录） */}
                       {!isOwner &&
                         authorProfile &&
                         !authorProfileLoading &&
                         !authError && (
-                        <div className="d-inline-flex align-items-center gap-1">
-                          {authorProfile.isFollowing ? (
-                            // 已关注：按钮本身是一个 Dropdown
-                            <Dropdown align="end">
-                              <Dropdown.Toggle
-                                variant="outline-primary"
+                          <div className="d-inline-flex align-items-center gap-1">
+                            {authorProfile.isFollowing ? (
+                              // 已关注：按钮本身是一个 Dropdown
+                              <Dropdown align="end">
+                                <Dropdown.Toggle
+                                  variant="outline-primary"
+                                  size="sm"
+                                  id="followed-dropdown"
+                                  className="py-0 px-2 d-inline-flex align-items-center"
+                                  disabled={followBusy}
+                                >
+                                  <span>Followed</span>
+                                  <span className="ms-1 small">
+                                    · {authorProfile.followersCount}
+                                  </span>
+                                </Dropdown.Toggle>
+                                <Dropdown.Menu>
+                                  <Dropdown.Item onClick={handleUnfollow} disabled={followBusy}>
+                                    Unfollow
+                                  </Dropdown.Item>
+                                </Dropdown.Menu>
+                              </Dropdown>
+                            ) : (
+                              // 未关注：普通按钮，点击直接 follow
+                              <Button
+                                variant="primary"
                                 size="sm"
-                                id="followed-dropdown"
                                 className="py-0 px-2 d-inline-flex align-items-center"
                                 disabled={followBusy}
+                                onClick={handleFollow}
                               >
-                                <span>Followed</span>
+                                <span>Follow</span>
                                 <span className="ms-1 small">
                                   · {authorProfile.followersCount}
                                 </span>
-                              </Dropdown.Toggle>
-                              <Dropdown.Menu>
-                                <Dropdown.Item onClick={handleUnfollow} disabled={followBusy}>
-                                  Unfollow
-                                </Dropdown.Item>
-                              </Dropdown.Menu>
-                            </Dropdown>
-                          ) : (
-                            // 未关注：普通按钮，点击直接 follow
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              className="py-0 px-2 d-inline-flex align-items-center"
-                              disabled={followBusy}
-                              onClick={handleFollow}
-                            >
-                              <span>Follow</span>
-                              <span className="ms-1 small">
-                                · {authorProfile.followersCount}
-                              </span>
-                            </Button>
-                          )}
-                        </div>
-                      )}
-
+                              </Button>
+                            )}
+                          </div>
+                        )}
                     </div>
                     <div>
                       {formatTime(post.created_at)}

@@ -213,18 +213,6 @@ export default function SchoolFeedPage() {
       <header className="mb-3">
         <h1 className="fw-bold mb-1">Welcome to {schoolName}'s Index!</h1>
 
-        <p className="text-muted small mb-1">
-          {authLoading ? (
-            <>
-            </>
-          ) : authError ? (
-            `You are viewing ${schoolName}'s index as a guest.`
-          ) : viewerId ? (
-            `You are viewing ${schoolName}'s index as ${username}.`
-          ) : (
-            `You are viewing ${schoolName}'s index.`
-          )}
-        </p>
 
       </header>
 

@@ -1,6 +1,6 @@
 // src/components/UserProfileHeader.tsx
 import React, { useEffect, useState } from "react";
-import { Button } from "react-bootstrap";
+import { Button, Dropdown } from "react-bootstrap";
 import type { UserProfile } from "../types/user";
 import { followUser, unfollowUser } from "../api/userApi";
 
@@ -9,7 +9,10 @@ interface UserProfileHeaderProps {
   onChange?: (next: UserProfile) => void; // optional callback when follow state changes
 }
 
-const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({ profile, onChange }) => {
+const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
+  profile,
+  onChange,
+}) => {
   const [localProfile, setLocalProfile] = useState<UserProfile>(profile);
   const [loading, setLoading] = useState(false);
 
@@ -18,37 +21,48 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({ profile, onChange
     setLocalProfile(profile);
   }, [profile]);
 
-  async function handleToggleFollow() {
+  async function handleFollow() {
     if (localProfile.isMe || loading) return;
+    if (localProfile.isFollowing) return;
 
     setLoading(true);
     try {
-      if (localProfile.isFollowing) {
-        const resp = await unfollowUser(localProfile.id);
-        if (!resp.isSuccessful) {
-          console.error(resp.errorMessage);
-        } else {
-          const updated: UserProfile = {
-            ...localProfile,
-            isFollowing: false,
-            followersCount: Math.max(0, localProfile.followersCount - 1),
-          };
-          setLocalProfile(updated);
-          onChange?.(updated);
-        }
+      const resp = await followUser(localProfile.id);
+      if (!resp.isSuccessful) {
+        console.error(resp.errorMessage);
       } else {
-        const resp = await followUser(localProfile.id);
-        if (!resp.isSuccessful) {
-          console.error(resp.errorMessage);
-        } else {
-          const updated: UserProfile = {
-            ...localProfile,
-            isFollowing: true,
-            followersCount: localProfile.followersCount + 1,
-          };
-          setLocalProfile(updated);
-          onChange?.(updated);
-        }
+        const updated: UserProfile = {
+          ...localProfile,
+          isFollowing: true,
+          followersCount: localProfile.followersCount + 1,
+        };
+        setLocalProfile(updated);
+        onChange?.(updated);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleUnfollow() {
+    if (localProfile.isMe || loading) return;
+    if (!localProfile.isFollowing) return;
+
+    setLoading(true);
+    try {
+      const resp = await unfollowUser(localProfile.id);
+      if (!resp.isSuccessful) {
+        console.error(resp.errorMessage);
+      } else {
+        const updated: UserProfile = {
+          ...localProfile,
+          isFollowing: false,
+          followersCount: Math.max(0, localProfile.followersCount - 1),
+        };
+        setLocalProfile(updated);
+        onChange?.(updated);
       }
     } catch (e) {
       console.error(e);
@@ -58,6 +72,13 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({ profile, onChange
   }
 
   const showFollowButton = !localProfile.isMe;
+
+  // 按钮文案：优先显示 Follow back
+  const followButtonLabel = localProfile.isFollowing
+    ? "Following"
+    : localProfile.followedYou
+    ? "Follow back"
+    : "Follow";
 
   return (
     <div className="d-flex align-items-center justify-content-between mb-3">
@@ -83,7 +104,18 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({ profile, onChange
         </div>
 
         <div>
-          <div className="fw-semibold mb-1">{localProfile.userName}</div>
+          {/* 用户名 + Follows you badge */}
+          <div
+            className="d-flex align-items-center mb-1"
+            style={{ gap: "8px" }}
+          >
+            <div className="fw-semibold">{localProfile.userName}</div>
+            {!localProfile.isMe && localProfile.followedYou && (
+              <span className="badge bg-light text-muted border small">
+                Follows you
+              </span>
+            )}
+          </div>
 
           {/* stats: big numbers, small labels below */}
           <div className="d-flex text-muted" style={{ gap: "16px" }}>
@@ -111,16 +143,39 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({ profile, onChange
         </div>
       </div>
 
-      {/* Right: follow button */}
+      {/* Right: follow button / dropdown */}
       {showFollowButton && (
-        <Button
-          variant={localProfile.isFollowing ? "outline-primary" : "primary"}
-          size="sm"
-          disabled={loading}
-          onClick={handleToggleFollow}
-        >
-          {localProfile.isFollowing ? "Following" : "Follow"}
-        </Button>
+        <>
+          {localProfile.isFollowing ? (
+            // 已关注：Dropdown 二级操作，和 PostDetailPage 类似
+            <Dropdown align="end">
+              <Dropdown.Toggle
+                variant="outline-primary"
+                size="sm"
+                id="profile-followed-dropdown"
+                className="py-0 px-3 d-inline-flex align-items-center"
+                disabled={loading}
+              >
+                <span>{followButtonLabel}</span>
+              </Dropdown.Toggle>
+              <Dropdown.Menu>
+                <Dropdown.Item onClick={handleUnfollow} disabled={loading}>
+                  Unfollow
+                </Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
+          ) : (
+            // 未关注：直接 Follow
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={loading}
+              onClick={handleFollow}
+            >
+              {followButtonLabel}
+            </Button>
+          )}
+        </>
       )}
     </div>
   );

@@ -159,8 +159,8 @@ export default function PostCard(props: PostCardProps) {
               src={avatarSrc}
               alt={post.user_name || `user${post.user_id}`}
               style={{
-                width: 32,
-                height: 32,
+                width: 38,
+                height: 38,
                 borderRadius: "50%",
                 objectFit: "cover",
                 border: "1px solid #ddd",

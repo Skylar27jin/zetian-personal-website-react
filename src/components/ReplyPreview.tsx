@@ -101,8 +101,8 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({
                     src={avatarSrc}
                     alt={displayName}
                     style={{
-                      width: 28,
-                      height: 28,
+                      width: 38,
+                      height: 38,
                       borderRadius: "50%",
                       objectFit: "cover",
                       border: "1px solid #ddd",

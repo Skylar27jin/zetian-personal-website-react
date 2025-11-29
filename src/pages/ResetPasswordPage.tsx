@@ -1,41 +1,45 @@
-// src/pages/SignupPage.tsx
+// src/pages/ResetPasswordPage.tsx
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   sendVerificationCode,
   verifyEmailCode,
 } from "../api/verificationApi";
-import { signUpUser } from "../api/userApi";
-import type { SignUpReq } from "../types/user";
+import { ResetPassword } from "../api/userApi";
+import type { ResetPasswordReq } from "../types/user";
 import "../components/ColorfulButton.css";
 import CreatePasswordInput from "../components/CreatePasswordInput";
 import AuthLayout from "../layouts/AuthLayout";
 
-export default function SignupPage() {
+export default function ResetPasswordPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false); // ✅ 新增
+  const [newPassword, setNewPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  /** Step 1 - send verification code */
+  // Step 1 - send verification code
   const handleSendCode = async () => {
     if (!email) {
       setMsg("❌ Please enter your email first.");
       return;
     }
     if (loading) return;
+
     setLoading(true);
     setMsg("");
     try {
-      const res = await sendVerificationCode({ email, purpose: "signup" });
+      const res = await sendVerificationCode({
+        email,
+        purpose: "resetpassword", // ✅ 注意 purpose
+      });
       if (res.is_successful) {
         setMsg(
-          "✅ Verification code sent, please check inbox (might be in Spam)."
+          "✅ Verification code sent, please check inbox (may be in Spam)."
         );
         setStep(2);
       } else {
@@ -52,19 +56,24 @@ export default function SignupPage() {
     }
   };
 
-  /** Step 2 - Verify the code */
+  // Step 2 - verify code
   const handleVerifyCode = async () => {
     if (!code) {
       setMsg("❌ Please enter the verification code.");
       return;
     }
     if (loading) return;
+
     setLoading(true);
     setMsg("");
     try {
-      const res = await verifyEmailCode({ email, code, purpose: "signup" });
+      const res = await verifyEmailCode({
+        email,
+        code,
+        purpose: "resetpassword", // ✅ 注意 purpose
+      });
       if (res.is_successful) {
-        setMsg("✅ Email verified!");
+        setMsg("✅ Email verified, you can set a new password.");
         setStep(3);
       } else {
         setMsg("❌ " + res.error_message);
@@ -76,13 +85,13 @@ export default function SignupPage() {
     }
   };
 
-  /** Step 3 - Register Account */
-  const handleSignup = async () => {
-    if (!username || !password) {
-      setMsg("❌ Username and password cannot be empty.");
+  // Step 3 - reset password
+  const handleResetPassword = async () => {
+    if (!newPassword) {
+      setMsg("❌ Password cannot be empty.");
       return;
     }
-    if (password.length < 8) {
+    if (newPassword.length < 8) {
       setMsg("❌ Password must be at least 8 characters.");
       return;
     }
@@ -91,49 +100,29 @@ export default function SignupPage() {
     setLoading(true);
     setMsg("");
     try {
-      const req: SignUpReq = { username, email, password };
-      const res = await signUpUser(req);
+      const req: ResetPasswordReq = {
+        email,
+        new_password: newPassword, // ✅ 对应 thrift 里的 new_password
+      };
+      const res = await ResetPassword(req);
 
       if (res.isSuccessful) {
         setMsg(
-          "🎉 Registered successfully, navigating to login page in 3 seconds..."
+          "🎉 Password reset successfully, redirecting to login page..."
         );
-        setTimeout(() => navigate("/login"), 3000);
+        setTimeout(() => navigate("/login"), 2000);
       } else {
-        const msg = (res.errorMessage || "").toLowerCase();
-
-        if (msg.includes("already")) {
-          setMsg(
-            "❌ This email is already registered. Redirecting you to login..."
-          );
-          setTimeout(() => navigate("/login"), 1000);
-        } else {
-          setMsg("❌ " + res.errorMessage);
-        }
+        setMsg("❌ " + res.errorMessage);
       }
     } catch (e: any) {
-      console.error("signup error", e);
-
-      const backendMsg =
-        e?.response?.data?.errorMessage || e?.response?.data?.message;
-
-      if (
-        typeof backendMsg === "string" &&
-        backendMsg.toLowerCase().includes("already")
-      ) {
-        setMsg(
-          "❌ This email is already registered. Redirecting you to login..."
-        );
-        setTimeout(() => navigate("/login"), 1000);
-      } else {
-        setMsg("❌ Network/Server error while registering.");
-      }
+      console.error("reset password error", e);
+      setMsg("❌ Network/Server error while resetting password.");
     } finally {
       setLoading(false);
     }
   };
 
-  // 当前步骤对应的主按钮文字 & handler
+  // 当前步骤对应的主按钮
   const primaryAction =
     step === 1
       ? {
@@ -145,21 +134,21 @@ export default function SignupPage() {
           text: loading ? "Verifying..." : "Verify code",
           onClick: handleVerifyCode,
         }
-      : { text: loading ? "Signing up..." : "Sign up", onClick: handleSignup };
+      : {
+          text: loading ? "Resetting..." : "Reset password",
+          onClick: handleResetPassword,
+        };
 
   return (
     <AuthLayout>
       <div
         style={{
           width: "100%",
-          // 原来是 0.95，几乎不透明
-          // 想明显一点可以先用 0.4 试试
           background: "rgba(255,255,255,0.4)",
           borderRadius: 18,
           padding: "2.5rem 2rem",
           boxShadow: "0 16px 40px rgba(15,23,42,0.18)",
           boxSizing: "border-box",
-          // （可选）玻璃磨砂效果
           backdropFilter: "blur(12px)",
         }}
       >
@@ -171,7 +160,7 @@ export default function SignupPage() {
             textAlign: "center",
           }}
         >
-          Sign up
+          Reset password
         </h2>
         <p
           style={{
@@ -181,14 +170,14 @@ export default function SignupPage() {
             textAlign: "center",
           }}
         >
-          Step {step} of 3 · Create your account
+          Step {step} of 3 · Secure your account
         </p>
 
-        {/* Step 专属表单内容 */}
+        {/* Step 内容 */}
         {step === 1 && (
           <div style={{ marginBottom: "1.25rem" }}>
             <label
-              htmlFor="signup-email"
+              htmlFor="reset-email"
               style={{
                 display: "block",
                 marginBottom: "0.35rem",
@@ -199,7 +188,7 @@ export default function SignupPage() {
               Email
             </label>
             <input
-              id="signup-email"
+              id="reset-email"
               placeholder="gopher@tt.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -219,7 +208,7 @@ export default function SignupPage() {
         {step === 2 && (
           <div style={{ marginBottom: "1.25rem" }}>
             <label
-              htmlFor="signup-code"
+              htmlFor="reset-code"
               style={{
                 display: "block",
                 marginBottom: "0.35rem",
@@ -230,7 +219,7 @@ export default function SignupPage() {
               Verification code
             </label>
             <input
-              id="signup-code"
+              id="reset-code"
               placeholder="Enter the code from your email"
               value={code}
               onChange={(e) => setCode(e.target.value)}
@@ -258,47 +247,18 @@ export default function SignupPage() {
 
         {step === 3 && (
           <>
-            <div style={{ marginBottom: "1.0rem" }}>
-              <label
-                htmlFor="signup-username"
-                style={{
-                  display: "block",
-                  marginBottom: "0.35rem",
-                  fontSize: "0.9rem",
-                  fontWeight: 500,
-                }}
-              >
-                Username
-              </label>
-              <input
-                id="signup-username"
-                placeholder="Your nickname"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "0.65rem 0.8rem",
-                  borderRadius: 10,
-                  border: "1px solid #e2e8f0",
-                  fontSize: "0.95rem",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-              />
-            </div>
-
             <CreatePasswordInput
-              id="signup-password"
-              label="Password"
-              value={password}
-              onChange={setPassword}
-              show={showPassword} // ✅ 传入 show
-              setShow={setShowPassword} // ✅ 传入 setShow
+              id="reset-password"
+              label="New password"
+              value={newPassword}
+              onChange={setNewPassword}
+              show={showPassword}
+              setShow={setShowPassword}
             />
           </>
         )}
 
-        {/* 主按钮（居中 + 渐变） */}
+        {/* 主按钮 */}
         <div
           style={{
             display: "flex",
@@ -322,7 +282,7 @@ export default function SignupPage() {
           </button>
         </div>
 
-        {/* 底部：已有账号？去登录 */}
+        {/* 底部：回登录 */}
         <div
           style={{
             marginTop: "1rem",
@@ -330,7 +290,7 @@ export default function SignupPage() {
             fontSize: "0.85rem",
           }}
         >
-          Already have an account?{" "}
+          Remember your password?{" "}
           <button
             type="button"
             onClick={() => navigate("/login")}

@@ -8,6 +8,7 @@ export interface UserProfile {
   followingCount: number;
   postLikeReceivedCount: number;
   isFollowing: boolean;
+  followedYou: boolean;
   isMe: boolean;
 }
 
