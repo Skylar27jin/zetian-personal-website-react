@@ -179,7 +179,7 @@ export default function PostCard(props: PostCardProps) {
                 style={{ fontSize: "0.9rem", fontWeight: 600 }}
                 onClick={(e) => e.stopPropagation()}
               >
-                @{post.user_name || `user${post.user_id}`}
+                {post.user_name || `user${post.user_id}`}
               </Link>
             )}
 

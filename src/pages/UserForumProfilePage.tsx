@@ -13,6 +13,7 @@ import type { Post } from "../types/post";
 import GopherLoader from "../components/GopherLoader";
 import PostList from "../components/PostList";
 import UserProfileHeader from "../components/UserProfileHeader";
+import UserListModal from "../components/UserListModal";
 
 // --------------------- Shell ---------------------
 function PageShell({ children }: { children: React.ReactNode }) {
@@ -47,6 +48,10 @@ export default function UserProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [userLoading, setUserLoading] = useState(true);
   const [userError, setUserError] = useState<string | null>(null);
+
+
+  const [showFollowers, setShowFollowers] = useState(false);
+  const [showFollowing, setShowFollowing] = useState(false);
 
   const handleReportPost = (post: Post) => {
     alert(`Report feature coming soon for post #${post.id}`);
@@ -139,7 +144,13 @@ export default function UserProfilePage() {
           </h1>
 
           {profile && (
-            <UserProfileHeader profile={profile} onChange={setProfile} />
+              <UserProfileHeader 
+                profile={profile} 
+                onChange={setProfile} 
+                  onFollowersClick={() => setShowFollowers(true)}
+                  onFollowingClick={() => setShowFollowing(true)} 
+                />
+
           )}
 
           {(authLoading || userLoading) && (
@@ -186,7 +197,26 @@ export default function UserProfilePage() {
         {/* profile header: avatar + stats + follow button */}
         {profile && (
           <div className="mb-2">
-            <UserProfileHeader profile={profile} onChange={setProfile} />
+            <UserProfileHeader 
+              profile={profile} 
+              onChange={setProfile} 
+              onFollowersClick={() => setShowFollowers(true)}
+              onFollowingClick={() => setShowFollowing(true)} 
+            />
+            <UserListModal
+              show={showFollowers}
+              onClose={() => setShowFollowers(false)}
+              userId={profile.id}
+              type="followers"
+              title="Followers"
+              />
+            <UserListModal
+              show={showFollowing}
+              onClose={() => setShowFollowing(false)}
+              userId={profile.id}
+              type="following"
+              title="Following"
+              />
           </div>
         )}
 

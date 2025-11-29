@@ -67,8 +67,8 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({
       : DEFAULT_AVATAR;
 
   const displayName =
-    (parentAuthorName && `@${parentAuthorName}`) ||
-    (parentPost?.user_name && `@${parentPost.user_name}`) ||
+    (parentAuthorName && `${parentAuthorName}`) ||
+    (parentPost?.user_name && `${parentPost.user_name}`) ||
     (parentPost ? `User #${parentPost.user_id}` : "Original author");
 
   return (

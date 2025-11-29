@@ -600,7 +600,7 @@ export default function PostDetailPage() {
                         style={{ fontWeight: 500 }}
                       >
                         {post.user_name
-                          ? `@${post.user_name}`
+                          ? `${post.user_name}`
                           : `User #${post.user_id}`}
                       </Link>
 

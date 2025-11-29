@@ -7,11 +7,15 @@ import { followUser, unfollowUser } from "../api/userApi";
 interface UserProfileHeaderProps {
   profile: UserProfile;
   onChange?: (next: UserProfile) => void; // optional callback when follow state changes
+  onFollowersClick?: () => void;
+  onFollowingClick?: () => void;
 }
 
 const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
   profile,
   onChange,
+  onFollowersClick,
+  onFollowingClick,
 }) => {
   const [localProfile, setLocalProfile] = useState<UserProfile>(profile);
   const [loading, setLoading] = useState(false);
@@ -119,20 +123,39 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
 
           {/* stats: big numbers, small labels below */}
           <div className="d-flex text-muted" style={{ gap: "16px" }}>
-            <div className="d-flex flex-column align-items-start">
+            {/* followers：整块可点 */}
+            <div
+              className="d-flex flex-column align-items-start"
+              role={onFollowersClick ? "button" : undefined}
+              onClick={onFollowersClick}
+              style={{
+                cursor: onFollowersClick ? "pointer" : "default",
+                userSelect: "none",
+              }}
+            >
               <div className="fw-bold" style={{ fontSize: "1.1rem" }}>
                 {localProfile.followersCount}
               </div>
               <div className="small">followers</div>
             </div>
 
-            <div className="d-flex flex-column align-items-start">
+            {/* following：整块可点 */}
+            <div
+              className="d-flex flex-column align-items-start"
+              role={onFollowingClick ? "button" : undefined}
+              onClick={onFollowingClick}
+              style={{
+                cursor: onFollowingClick ? "pointer" : "default",
+                userSelect: "none",
+              }}
+            >
               <div className="fw-bold" style={{ fontSize: "1.1rem" }}>
                 {localProfile.followingCount}
               </div>
               <div className="small">following</div>
             </div>
 
+            {/* likes received：普通展示，不可点 */}
             <div className="d-flex flex-column align-items-start">
               <div className="fw-bold" style={{ fontSize: "1.1rem" }}>
                 {localProfile.postLikeReceivedCount}

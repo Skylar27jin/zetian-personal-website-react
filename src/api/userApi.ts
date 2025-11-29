@@ -12,6 +12,11 @@ import type {
   UnfollowUserResp,
   FollowUserResp,
   GetUserProfileResp,
+
+  GetFollowersReq,
+  GetFollowersResp,
+  GetFolloweesReq,
+  GetFolloweesResp,
 } from "../types/user";
 import axios from "axios";
 
@@ -175,5 +180,38 @@ export async function unfollowUser(targetUserId: number) {
       withCredentials: true,
     }
   );
+  return resp.data;
+}
+
+export async function getFollowers(
+  req: GetFollowersReq
+): Promise<GetFollowersResp> {
+  const resp = await axios.get<GetFollowersResp>(`${BASE_URL}/user/followers`, {
+    params: {
+      user_id: req.user_id,
+      cursor: req.cursor,
+      limit: req.limit,
+    },
+    withCredentials: true,
+  });
+
+  return resp.data;
+}
+
+export async function getFollowees(
+  req: GetFolloweesReq
+): Promise<GetFolloweesResp> {
+  const resp = await axios.get<GetFolloweesResp>(
+    `${BASE_URL}/user/followees`,
+    {
+      params: {
+        user_id: req.user_id,
+        cursor: req.cursor,
+        limit: req.limit,
+      },
+      withCredentials: true,
+    }
+  );
+
   return resp.data;
 }

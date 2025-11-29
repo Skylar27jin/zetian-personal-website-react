@@ -1,0 +1,91 @@
+/* src/components/UserListModal.css */
+
+/* 整个 Modal body 轻微缩小顶部 padding，更紧凑一点 */
+.user-list-modal-body {
+  padding-top: 0.75rem;
+}
+
+/* 列表整体：去掉默认圆角，让每一项像一条“卡片”紧密堆叠 */
+.user-list-group {
+  border-radius: 0;
+  margin: 0;
+}
+
+/* 每个 item：无外间距、上下边框分隔、纯白背景 */
+.user-list-item {
+  padding: 10px 14px;
+  border: 0;
+  border-bottom: 1px solid #eee;
+  border-radius: 0;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 最后一条去掉底部线 */
+.user-list-item:last-child {
+  border-bottom: none;
+}
+
+/* Hover 效果：轻微底色，类似 App 里按下的高亮 */
+.user-list-item:hover,
+.user-list-item:focus {
+  background-color: #f7f7f7;
+}
+
+/* Avatar：略带圆角+阴影，类似 instagram 里的小圆头像 */
+.user-list-avatar-wrapper {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: #f5f5f5;
+  border: 1px solid #e3e3e3;
+}
+
+.user-list-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 名字行：减少间距，badge 更贴近用户名 */
+.user-list-name-row {
+  gap: 6px;
+}
+
+.user-list-username {
+  font-size: 0.95rem;
+}
+
+/* Follow 按钮：收窄一点，更像 App 的 pill button */
+.user-list-follow-btn {
+  padding-inline: 12px;
+  padding-block: 4px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+/* 小屏幕上：稍微减小 padding，保证密集但不拥挤 */
+@media (max-width: 576px) {
+  .user-list-item {
+    padding: 8px 10px;
+    gap: 10px;
+  }
+
+  .user-list-avatar-wrapper {
+    width: 36px;
+    height: 36px;
+  }
+
+  .user-list-username {
+    font-size: 0.9rem;
+  }
+
+  .user-list-follow-btn {
+    padding-inline: 10px;
+  }
+}

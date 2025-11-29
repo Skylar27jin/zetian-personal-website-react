@@ -24,6 +24,7 @@ import type { Post } from "../types/post";
 import GopherLoader from "../components/GopherLoader";
 import PostList from "../components/PostList";
 import Editor from "../components/Editor";
+import UserListModal from "../components/UserListModal";
 
 // --------------------- 通用页面壳子 ---------------------
 function PageShell({ children }: { children: React.ReactNode }) {
@@ -151,6 +152,9 @@ export default function MyForumProfilePage() {
   const [deleteCountdown, setDeleteCountdown] = useState(5);
   const [deleteButtonEnabled, setDeleteButtonEnabled] = useState(false);
   const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
+
+  const [showFollowers, setShowFollowers] = useState(false);
+  const [showFollowing, setShowFollowing] = useState(false);
 
   // 删除倒计时
   useEffect(() => {
@@ -347,8 +351,28 @@ export default function MyForumProfilePage() {
       />
       {profile && (
         <div className="mb-3">
-          <UserProfileHeader profile={profile} onChange={setProfile} />
+          <UserProfileHeader 
+            profile={profile} 
+            onChange={setProfile} 
+            onFollowersClick={() => setShowFollowers(true)} 
+            onFollowingClick={() => setShowFollowing(true)} 
+            />
+          <UserListModal
+            show={showFollowers}
+            onClose={() => setShowFollowers(false)}
+            userId={profile.id}
+            type="followers"
+            title="Followers"
+          />
+          <UserListModal
+            show={showFollowing}
+            onClose={() => setShowFollowing(false)}
+            userId={profile.id}
+            type="following"
+            title="Following"
+          />
         </div>
+        
       )}
 
       {profileError && (

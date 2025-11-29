@@ -12,6 +12,46 @@ export interface UserProfile {
   isMe: boolean;
 }
 
+export interface SimpleUserProfile {
+  id: number;
+  userName: string;
+  avatarUrl: string;
+
+  isFollowing: boolean;
+  followedYou: boolean;
+  isMe: boolean;
+}
+
+export interface GetFollowersReq {
+  user_id: number;
+  cursor?: number;
+  limit?: number;
+}
+
+export interface GetFollowersResp {
+  isSuccessful: boolean;
+  errorMessage: string;
+  users: SimpleUserProfile[];
+  nextCursor?: number;
+  hasMore: boolean;
+}
+
+export interface GetFolloweesReq {
+  user_id: number;
+  cursor?: number;
+  limit?: number;
+}
+
+export interface GetFolloweesResp {
+  isSuccessful: boolean;
+  errorMessage: string;
+  users: SimpleUserProfile[];
+  nextCursor?: number;
+  hasMore: boolean;
+}
+
+
+
 export interface GetUserProfileResp {
   isSuccessful: boolean;
   errorMessage: string;
@@ -27,6 +67,8 @@ export interface UnfollowUserResp {
   isSuccessful: boolean;
   errorMessage: string;
 }
+
+
 
 
 // === Login ===
