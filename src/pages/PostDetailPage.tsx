@@ -532,7 +532,6 @@ export default function PostDetailPage() {
                 </span>
               ) : (
                 <span className="text-muted small">
-                  {authError ? "Viewing as guest." : `Viewing as ${username}.`}
                 </span>
               )}
             </div>
@@ -702,7 +701,7 @@ export default function PostDetailPage() {
                 </ScrollablePanel>
 
                 {/* 底部统计 + 操作区 */}
-                <hr className="my-4" />
+                <br/>
 
                 <div className="d-flex align-items-center text-muted small">
                   {/* 左侧统计 */}
