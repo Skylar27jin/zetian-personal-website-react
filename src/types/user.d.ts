@@ -1,5 +1,33 @@
 // src/types/user.d.ts
 
+export interface UserProfile {
+  id: number;
+  userName: string;
+  avatarUrl: string;
+  followersCount: number;
+  followingCount: number;
+  postLikeReceivedCount: number;
+  isFollowing: boolean;
+  isMe: boolean;
+}
+
+export interface GetUserProfileResp {
+  isSuccessful: boolean;
+  errorMessage: string;
+  user: UserProfile;
+}
+
+export interface FollowUserResp {
+  isSuccessful: boolean;
+  errorMessage: string;
+}
+
+export interface UnfollowUserResp {
+  isSuccessful: boolean;
+  errorMessage: string;
+}
+
+
 // === Login ===
 export interface LoginReq {
   email: string;

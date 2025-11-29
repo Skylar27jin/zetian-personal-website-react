@@ -11,6 +11,11 @@ import {
 } from "react-bootstrap";
 import { motion } from "framer-motion";
 
+
+import { useMyProfile } from "../hooks/useMyProfile";
+import UserProfileHeader from "../components/UserProfileHeader";
+import type { UserProfile } from "../types/user";
+
 import Navbar from "../components/Navbar";
 import { useMeAuth } from "../hooks/useMeAuth";
 import { usePersonalPosts } from "../hooks/usePersonalPosts";
@@ -105,6 +110,14 @@ export default function MyForumProfilePage() {
   const safeUserId = userId ?? 0;
   const enabled = !authLoading && isLoggedIn;
 
+
+  const {
+    profile,
+    loading: profileLoading,
+    error: profileError,
+    setProfile,
+  } = useMyProfile(userId ?? null, enabled);
+  
   const {
     posts,
     loadingPosts,
@@ -323,7 +336,7 @@ export default function MyForumProfilePage() {
   // ======= 正常渲染 =======
   return (
     <PageShell>
-      {/* Header：左标题+登录信息，右 Create New Post */}
+      {/* Header：左标题+登录信息*/}
       <MyForumHeader
         authLoading={authLoading}
         userId={userId}
@@ -332,6 +345,17 @@ export default function MyForumProfilePage() {
         showCreateButton={true}
         onClickCreate={() => (window.location.href = "/post/create")}
       />
+      {profile && (
+        <div className="mb-3">
+          <UserProfileHeader profile={profile} onChange={setProfile} />
+        </div>
+      )}
+
+      {profileError && (
+        <Alert variant="warning" className="py-2">
+          {profileError}
+        </Alert>
+      )}
 
       {/* action 错误提示（edit/delete） */}
       {actionError && (

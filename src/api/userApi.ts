@@ -9,6 +9,9 @@ import type {
   ResetPasswordReq,
   ResetPasswordResp,
   UploadAvatarResp,
+  UnfollowUserResp,
+  FollowUserResp,
+  GetUserProfileResp,
 } from "../types/user";
 import axios from "axios";
 
@@ -140,4 +143,37 @@ export async function uploadAvatar(file: File | Blob): Promise<void> {
     },
     withCredentials: true,
   });
+}
+
+
+export async function getUserProfile(userId: number) {
+  const resp = await axios.get<GetUserProfileResp>(`${BASE_URL}/user/profile`, {
+    params: { id: userId },
+    withCredentials: true,
+  });
+  return resp.data;
+}
+
+export async function followUser(targetUserId: number) {
+  const resp = await axios.post<FollowUserResp>(
+    `${BASE_URL}/user/follow`,
+    null,
+    {
+      params: { id: targetUserId },
+      withCredentials: true,
+    }
+  );
+  return resp.data;
+}
+
+export async function unfollowUser(targetUserId: number) {
+  const resp = await axios.post<UnfollowUserResp>(
+    `${BASE_URL}/user/unfollow`,
+    null,
+    {
+      params: { id: targetUserId },
+      withCredentials: true,
+    }
+  );
+  return resp.data;
 }

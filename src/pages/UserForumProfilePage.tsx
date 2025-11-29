@@ -7,13 +7,14 @@ import { motion } from "framer-motion";
 import Navbar from "../components/Navbar";
 import { useMeAuth } from "../hooks/useMeAuth";
 import { usePersonalPosts } from "../hooks/usePersonalPosts";
-import { getUser } from "../api/userApi";
-import type { GetUserResp } from "../types/user";
+import { getUserProfile } from "../api/userApi";
+import type { UserProfile } from "../types/user";
 import type { Post } from "../types/post";
 import GopherLoader from "../components/GopherLoader";
 import PostList from "../components/PostList";
+import UserProfileHeader from "../components/UserProfileHeader";
 
-// --------------------- 通用壳子 ---------------------
+// --------------------- Shell ---------------------
 function PageShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="bg-light min-vh-100 d-flex flex-column">
@@ -25,7 +26,7 @@ function PageShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-// --------------------- 页面主体 ---------------------
+// --------------------- Main Page ---------------------
 export default function UserProfilePage() {
   // URL: /user/:id
   const { id } = useParams<{ id: string }>();
@@ -33,7 +34,7 @@ export default function UserProfilePage() {
 
   const { authLoading, authError, userId: viewerId, username } = useMeAuth();
 
-  // URL 参数非法
+  // invalid user id
   if (Number.isNaN(targetUserId)) {
     return (
       <PageShell>
@@ -42,8 +43,8 @@ export default function UserProfilePage() {
     );
   }
 
-  // 被访问的这个用户的信息
-  const [profileUser, setProfileUser] = useState<GetUserResp | null>(null);
+  // profile info (from /user/profile)
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [userLoading, setUserLoading] = useState(true);
   const [userError, setUserError] = useState<string | null>(null);
 
@@ -51,7 +52,7 @@ export default function UserProfilePage() {
     alert(`Report feature coming soon for post #${post.id}`);
   };
 
-  // 先调用 /user/get，确认这个人存在，并拿到 userName
+  // call /user/profile to check existence and get profile info
   useEffect(() => {
     let cancelled = false;
 
@@ -59,19 +60,19 @@ export default function UserProfilePage() {
       setUserLoading(true);
       setUserError(null);
       try {
-        const resp = await getUser({ id: targetUserId });
+        const resp = await getUserProfile(targetUserId);
         if (cancelled) return;
 
         if (!resp.isSuccessful) {
           setUserError(resp.errorMessage || "User not found");
-          setProfileUser(null);
+          setProfile(null);
         } else {
-          setProfileUser(resp);
+          setProfile(resp.user);
         }
       } catch (e: any) {
         if (cancelled) return;
         setUserError(e?.message || "Network error");
-        setProfileUser(null);
+        setProfile(null);
       } finally {
         if (!cancelled) {
           setUserLoading(false);
@@ -84,7 +85,7 @@ export default function UserProfilePage() {
     };
   }, [targetUserId]);
 
-  const enabled = !userLoading && !userError && profileUser != null;
+  const enabled = !userLoading && !userError && profile != null;
 
   const {
     posts,
@@ -101,7 +102,7 @@ export default function UserProfilePage() {
     quotedPosts,
   } = usePersonalPosts(targetUserId, enabled);
 
-  // 用户不存在
+  // user not found
   if (!userLoading && userError) {
     return (
       <PageShell>
@@ -110,7 +111,7 @@ export default function UserProfilePage() {
     );
   }
 
-  // 用户信息正在加载 → 显示 gopher
+  // user info loading & no posts yet → show loader
   if (userLoading && posts.length === 0) {
     return (
       <PageShell>
@@ -126,16 +127,38 @@ export default function UserProfilePage() {
   }
 
   const isSelf = viewerId === targetUserId;
-  const displayName = profileUser?.userName || `User #${targetUserId}`;
+  const displayName = profile?.userName || `User #${targetUserId}`;
 
-  // 帖子首次加载中（用户信息已加载完成）
-  if (!userLoading && profileUser && loadingPosts && posts.length === 0) {
+  // posts first load (user profile already loaded)
+  if (!userLoading && profile && loadingPosts && posts.length === 0) {
     return (
       <PageShell>
         <header className="mb-4">
-          <h1 className="fw-bold">
+          <h1 className="fw-bold mb-3">
             {isSelf ? "My Public Profile" : `${displayName}'s Posts`}
           </h1>
+
+          {profile && (
+            <UserProfileHeader profile={profile} onChange={setProfile} />
+          )}
+
+          {(authLoading || userLoading) && (
+            <p className="text-secondary mb-0">
+              <Spinner animation="border" size="sm" /> Loading…
+            </p>
+          )}
+
+          {!authLoading && !userLoading && (
+            <p className="text-muted small mb-0">
+              {isSelf ? (
+                "You are viewing your own public posts."
+              ) : authError ? (
+                `You are viewing ${displayName}'s posts as a guest.`
+              ) : (
+                `You are viewing ${displayName}'s posts as ${username}.`
+              )}
+            </p>
+          )}
         </header>
 
         <div className="d-flex justify-content-center py-5">
@@ -145,13 +168,12 @@ export default function UserProfilePage() {
     );
   }
 
-  // ======= 正常渲染 =======
+  // ======= normal render =======
   return (
     <PageShell>
-      {/* Header */}
       <header className="mb-4">
-        {/* 第一行：标题 + 小按钮（仅自己时） */}
-        <div className="d-flex align-items-center gap-2 mb-1">
+        {/* title + back button (for self) */}
+        <div className="d-flex align-items-center gap-2 mb-2">
           <h1 className="fw-bold mb-0">
             {isSelf ? "My Public Profile" : `${displayName}'s Posts`}
           </h1>
@@ -173,7 +195,14 @@ export default function UserProfilePage() {
           )}
         </div>
 
-        {/* 第二行：下面的小说明文字 / loading */}
+        {/* profile header: avatar + stats + follow button */}
+        {profile && (
+          <div className="mb-2">
+            <UserProfileHeader profile={profile} onChange={setProfile} />
+          </div>
+        )}
+
+        {/* description text */}
         {(authLoading || userLoading) && (
           <p className="text-secondary mb-0">
             <Spinner animation="border" size="sm" /> Loading…
@@ -193,7 +222,7 @@ export default function UserProfilePage() {
         )}
       </header>
 
-      {/* 帖子列表 */}
+      {/* post list */}
       <PostList
         posts={posts}
         loadingPosts={loadingPosts}

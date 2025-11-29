@@ -12,8 +12,10 @@ import {
   Modal,
   Form,
   Badge,
+  Dropdown,
 } from "react-bootstrap";
 import { motion } from "framer-motion";
+
 
 import Navbar from "../components/Navbar";
 import { useMeAuth } from "../hooks/useMeAuth";
@@ -29,7 +31,13 @@ import {
 import type { Post, GetPostByIDResp } from "../types/post";
 import PostActionsDropdown from "../components/PostActionsDropDown";
 
-import { getUser } from "../api/userApi";
+import {
+  getUser,
+  getUserProfile,
+  followUser,
+  unfollowUser,
+} from "../api/userApi";
+import type { UserProfile } from "../types/user";
 import GopherLoader from "../components/GopherLoader";
 import PostMediaDisplay from "../components/PostMediaDisplay";
 import ScrollablePanel from "../components/ScrollPanel";
@@ -81,7 +89,7 @@ export default function PostDetailPage() {
   const [editContent, setEditContent] = useState("");
   const [editSaving, setEditSaving] = useState(false);
 
-  // 操作错误（like/fav/edit/delete）
+  // 操作错误（like/fav/edit/delete/follow）
   const [actionError, setActionError] = useState<string | null>(null);
 
   // 删除中 loading
@@ -93,6 +101,11 @@ export default function PostDetailPage() {
 
   // 举报 Modal
   const [showReportModal, setShowReportModal] = useState(false);
+
+  // ========= 作者 follow 状态 =========
+  const [authorProfile, setAuthorProfile] = useState<UserProfile | null>(null);
+  const [authorProfileLoading, setAuthorProfileLoading] = useState(false);
+  const [followBusy, setFollowBusy] = useState(false);
 
   // URL 参数非法
   if (Number.isNaN(postId)) {
@@ -139,6 +152,45 @@ export default function PostDetailPage() {
       cancelled = true;
     };
   }, [postId]);
+
+  const isOwner = !!post && !!viewerId && post.user_id === viewerId;
+
+  // 拉取作者 profile（用于 isFollowing 状态）
+  useEffect(() => {
+    if (!post || !viewerId || authError) {
+      setAuthorProfile(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      setAuthorProfileLoading(true);
+      try {
+        const resp = await getUserProfile(post.user_id);
+        if (cancelled) return;
+
+        if (!resp.isSuccessful) {
+          console.error(resp.errorMessage);
+          setAuthorProfile(null);
+        } else {
+          setAuthorProfile(resp.user);
+        }
+      } catch (e) {
+        if (cancelled) return;
+        console.error(e);
+        setAuthorProfile(null);
+      } finally {
+        if (!cancelled) {
+          setAuthorProfileLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [post?.user_id, viewerId, authError]);
 
   // 当前 post 有 reply_to 时，懒加载原帖信息
   useEffect(() => {
@@ -219,14 +271,12 @@ export default function PostDetailPage() {
     };
   }, [showDeleteModal]);
 
-  const isOwner = !!post && !!viewerId && post.user_id === viewerId;
-
   // ====================
   // like / unlike / fav / unfav
   // ====================
   const ensureLogin = () => {
     if (!viewerId || authError) {
-      setActionError("Please log in to like / favorite this post.");
+      setActionError("Please log in to like / favorite / follow.");
       return false;
     }
     return true;
@@ -323,6 +373,57 @@ export default function PostDetailPage() {
       setActionError(e?.message || "Network error while unfavoriting.");
     }
   };
+
+  async function handleFollow() {
+    if (followBusy) return;
+    if (!ensureLogin()) return;
+    if (!authorProfile || authorProfile.isFollowing) return;
+
+    setFollowBusy(true);
+    try {
+      const resp = await followUser(authorProfile.id);
+      if (!resp.isSuccessful) {
+        setActionError(resp.errorMessage || "Failed to follow user.");
+        return;
+      }
+      const updated = {
+        ...authorProfile,
+        isFollowing: true,
+        followersCount: authorProfile.followersCount + 1,
+      };
+      setAuthorProfile(updated);
+    } catch (e: any) {
+      setActionError(e?.message || "Network error while following.");
+    } finally {
+      setFollowBusy(false);
+    }
+  }
+
+  async function handleUnfollow() {
+    if (followBusy) return;
+    if (!ensureLogin()) return;
+    if (!authorProfile || !authorProfile.isFollowing) return;
+
+    setFollowBusy(true);
+    try {
+      const resp = await unfollowUser(authorProfile.id);
+      if (!resp.isSuccessful) {
+        setActionError(resp.errorMessage || "Failed to unfollow user.");
+        return;
+      }
+      const updated = {
+        ...authorProfile,
+        isFollowing: false,
+        followersCount: Math.max(0, authorProfile.followersCount - 1),
+      };
+      setAuthorProfile(updated);
+    } catch (e: any) {
+      setActionError(e?.message || "Network error while unfollowing.");
+    } finally {
+      setFollowBusy(false);
+    }
+  }
+
 
   // ====================
   // Reply：跳到发帖页，并带上 reply_to 信息
@@ -468,7 +569,7 @@ export default function PostDetailPage() {
                   {isOwner && <Badge bg="secondary">Me</Badge>}
                 </div>
 
-                {/* meta + avatar */}
+                {/* meta + avatar + follow */}
                 <div className="d-flex align-items-center gap-2 mb-2">
                   {/* avatar */}
                   <img
@@ -490,9 +591,9 @@ export default function PostDetailPage() {
                     onClick={() => navigate(`/user/${post.user_id}`)}
                   />
 
-                  {/* text meta */}
+                  {/* text meta + follow button */}
                   <div className="text-muted small">
-                    <div>
+                    <div className="d-flex align-items-center gap-2">
                       <Link
                         to={`/user/${post.user_id}`}
                         className="text-decoration-none"
@@ -502,6 +603,52 @@ export default function PostDetailPage() {
                           ? `@${post.user_name}`
                           : `User #${post.user_id}`}
                       </Link>
+
+                      {/* Follow 按钮（不是自己 + 已登录） */}
+                      {!isOwner &&
+                        authorProfile &&
+                        !authorProfileLoading &&
+                        !authError && (
+                        <div className="d-inline-flex align-items-center gap-1">
+                          {authorProfile.isFollowing ? (
+                            // 已关注：按钮本身是一个 Dropdown
+                            <Dropdown align="end">
+                              <Dropdown.Toggle
+                                variant="outline-primary"
+                                size="sm"
+                                id="followed-dropdown"
+                                className="py-0 px-2 d-inline-flex align-items-center"
+                                disabled={followBusy}
+                              >
+                                <span>Followed</span>
+                                <span className="ms-1 small">
+                                  · {authorProfile.followersCount}
+                                </span>
+                              </Dropdown.Toggle>
+                              <Dropdown.Menu>
+                                <Dropdown.Item onClick={handleUnfollow} disabled={followBusy}>
+                                  Unfollow
+                                </Dropdown.Item>
+                              </Dropdown.Menu>
+                            </Dropdown>
+                          ) : (
+                            // 未关注：普通按钮，点击直接 follow
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              className="py-0 px-2 d-inline-flex align-items-center"
+                              disabled={followBusy}
+                              onClick={handleFollow}
+                            >
+                              <span>Follow</span>
+                              <span className="ms-1 small">
+                                · {authorProfile.followersCount}
+                              </span>
+                            </Button>
+                          )}
+                        </div>
+                      )}
+
                     </div>
                     <div>
                       {formatTime(post.created_at)}
@@ -554,7 +701,7 @@ export default function PostDetailPage() {
                     {post.view_count}
                   </div>
 
-                  {/* 右侧按钮组 —— 用 ms-auto 推到最右边 */}
+                  {/* 右侧按钮组 */}
                   <div className="d-inline-flex gap-2 ms-auto align-items-center">
                     {/* Like */}
                     <motion.div whileTap={{ scale: 1.08 }}>
@@ -594,7 +741,7 @@ export default function PostDetailPage() {
                       </Button>
                     </motion.div>
 
-                    {/* 三点菜单：自己 = Edit/Delete，别人 = Report；所有登录用户都可以 Reply */}
+                    {/* 三点菜单 */}
                     <PostActionsDropdown
                       onEdit={isOwner ? openEditModal : undefined}
                       onDelete={
@@ -682,11 +829,7 @@ export default function PostDetailPage() {
           >
             {deleting ? (
               <>
-                <Spinner
-                  animation="border"
-                  size="sm"
-                  className="me-2"
-                />
+                <Spinner animation="border" size="sm" className="me-2" />
                 Deleting…
               </>
             ) : (
