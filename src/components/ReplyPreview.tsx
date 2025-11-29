@@ -130,7 +130,10 @@ const ReplyPreview: React.FC<ReplyPreviewProps> = ({
                   </div>
                 </div>
               </div>
-
+              {/* 标题 */}
+              <div className="fw-bold">
+                {parentPost.title || <span className="text-muted fst-italic">(No title)</span>}
+              </div>
               {/* 内容预览（和 PostCard 一样用 RichContent clamp） */}
               <div className="mt-2 small text-muted">
                 <RichContent

@@ -1,7 +1,12 @@
 // src/pages/CreatePostPage.tsx
 import React, { useEffect, useState } from "react";
-import { createPost, uploadPostMedia } from "../api/postApi";
-import type { CreatePostReq, CreatePostResp } from "../types/post";
+import { createPost, uploadPostMedia, getPostByID } from "../api/postApi";
+import type {
+  CreatePostReq,
+  CreatePostResp,
+  Post,
+  GetPostByIDResp,
+} from "../types/post";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Container,
@@ -18,6 +23,7 @@ import { getAllCategories } from "../api/categoryApi";
 import type { Category } from "../types/category";
 import Editor from "../components/Editor";
 import PostMediaUploader from "../components/PostMediaUploader";
+import ReplyPreview from "../components/ReplyPreview";
 
 const LS_KEYS = {
   userId: "me:id",
@@ -41,6 +47,52 @@ export default function CreatePostPage() {
   const replyToPost = locationState.replyToPost;
 
   const [replyToId] = useState<number | null>(replyToPost?.id ?? null);
+
+  // -----------------------------
+  // reply 原帖预览相关（给 ReplyPreview 用）
+  // -----------------------------
+  const [parentPost, setParentPost] = useState<Post | null>(null);
+  const [parentLoading, setParentLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!replyToId) {
+      setParentPost(null);
+      setParentLoading(false);
+      return;
+    }
+
+    (async () => {
+      try {
+        setParentLoading(true);
+        setParentPost(null);
+
+        const resp: GetPostByIDResp = await getPostByID({ id: replyToId });
+        if (cancelled) return;
+
+        if (!resp.isSuccessful || !resp.post) {
+          setParentPost(null);
+          return;
+        }
+
+        setParentPost(resp.post);
+      } catch (e) {
+        if (!cancelled) {
+          console.error("getPostByID for replyTo failed:", e);
+          setParentPost(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setParentLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [replyToId]);
 
   // -----------------------------
   // basic fields
@@ -290,25 +342,16 @@ export default function CreatePostPage() {
               </p>
 
               <Form onSubmit={handleSubmit}>
-                {/* 如果是 reply 帖，给一个小卡片提示 */}
-                {replyToPost && (
-                  <div
-                    className="mb-3 p-3 rounded-3"
-                    style={{
-                      background:
-                        "linear-gradient(135deg, rgba(244,244,255,0.95), rgba(230,245,255,0.95))",
-                      border: "1px solid #dde3ff",
-                    }}
-                  >
-                    <div className="text-muted small mb-1">Replying to</div>
-                    <div className="fw-semibold">
-                      {replyToPost.userName
-                        ? `@${replyToPost.userName}`
-                        : `User #${replyToPost.id}`}
-                    </div>
-                    <div className="small text-muted">
-                      “{replyToPost.title || "Untitled post"}”
-                    </div>
+                {/* 如果是 reply 帖，在顶部展示真正的 ReplyPreview */}
+                {replyToId && (
+                  <div className="mb-3">
+                    <ReplyPreview
+                      replyToPostId={replyToId}
+                      parentPost={parentPost ?? undefined}
+                      parentAuthorName={replyToPost?.userName || undefined}
+                      parentLoading={parentLoading}
+                      maxLines={3}
+                    />
                   </div>
                 )}
 
