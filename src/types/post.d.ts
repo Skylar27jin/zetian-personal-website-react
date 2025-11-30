@@ -154,6 +154,21 @@ export interface GetPersonalRecentPostsResp {
   quoted_posts?: Record<string, Post>;
 }
 
+
+export interface GetFollowingUsersRecentPostsReq {
+  before?: string; // optional: backend 默认 now
+  limit: number;
+}
+
+export interface GetFollowingUsersRecentPostsResp {
+  isSuccessful: boolean;
+  errorMessage: string;
+  posts: Post[];
+  quoted_posts?: Record<string, Post>;
+  next_cursor?: string | null;
+  has_more?: boolean | null;
+}
+
 /* ========================
    Like / Unlike / Fav / Unfav
    ======================== */

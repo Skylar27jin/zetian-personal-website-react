@@ -27,6 +27,8 @@ import type {
   UnfavPostReq,
   UserFlagPostResp,
   UploadPostMediaResp,
+  GetFollowingUsersRecentPostsReq,
+  GetFollowingUsersRecentPostsResp,
 } from "../types/post";
 
 const BASE_URL = import.meta.env.VITE_HERTZ_BASE_URL;
@@ -126,6 +128,16 @@ export async function getPersonalRecentPosts(
     limit: req.limit,
   })}`;
   return getJSON<GetPersonalRecentPostsResp>(url);
+}
+
+export async function getFollowingUsersRecentPosts(
+  req: GetFollowingUsersRecentPostsReq
+): Promise<GetFollowingUsersRecentPostsResp> {
+  const url = `${BASE_URL}/post/following/recent${buildQuery({
+    before: req.before,
+    limit: req.limit,
+  })}`;
+  return getJSON<GetFollowingUsersRecentPostsResp>(url);
 }
 
 /* ========================
