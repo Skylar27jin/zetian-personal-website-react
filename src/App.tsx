@@ -14,9 +14,11 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import SchoolFeedPage from "./pages/SchoolFeedPage";
 import SettingsPage from "./pages/Settings/SettingsPage";
 import FollowingFeedPage from "./pages/FollowingFeedPage";
+import AppShell from "./components/ios-specific/IOSAppShell";
 
 function App() {
   return (
+    <AppShell>
     <BrowserRouter>
       <Routes>
         //test route
@@ -45,6 +47,7 @@ function App() {
         
       </Routes>
     </BrowserRouter>
+    </AppShell>
   );
 }
 
