@@ -9,6 +9,7 @@ import {
   Modal,
   Form,
 } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
 
@@ -105,6 +106,7 @@ function MyForumHeader(props: {
 
 // --------------------- 页面主体 ---------------------
 export default function MyForumProfilePage() {
+  const navigate = useNavigate(); 
   const { authLoading, authError, userId, username, email } = useMeAuth();
 
   const isLoggedIn = !!userId && !authError;
@@ -177,12 +179,18 @@ export default function MyForumProfilePage() {
     return () => {
       window.clearInterval(timerId);
     };
+    
   }, [confirmDeletePost]);
 
+
+  useEffect(() => {
+    if (!authLoading && (!userId || authError)) {
+      navigate("/login", { replace: true });
+    }
+  }, [authLoading, userId, authError, navigate]);
   // ======= 条件 return =======
 
-  // 鉴权失败
-  if (!authLoading && authError) {
+  if (!authLoading && (!userId || authError)) {
     return (
       <PageShell>
         <MyForumHeader
@@ -192,51 +200,9 @@ export default function MyForumProfilePage() {
           email={email}
           showCreateButton={false}
         />
-        <Alert variant="danger" className="mt-3">
-          Auth failed: {authError}
-        </Alert>
-        <motion.div
-          whileTap={{ scale: 1.08 }}
-          transition={{ duration: 0.12 }}
-          className="mt-3"
-        >
-          <Button
-            variant="primary"
-            onClick={() => (window.location.href = "/login")}
-          >
-            Go to Login
-          </Button>
-        </motion.div>
-      </PageShell>
-    );
-  }
-
-  // 未登录但也没有报错（guest）
-  if (!authLoading && !authError && !userId) {
-    return (
-      <PageShell>
-        <MyForumHeader
-          authLoading={authLoading}
-          userId={userId}
-          username={username}
-          email={email}
-          showCreateButton={false}
-        />
-        <Alert variant="info" className="mt-3">
-          You are not logged in. Please log in to view your posts.
-        </Alert>
-        <motion.div
-          whileTap={{ scale: 1.08 }}
-          transition={{ duration: 0.12 }}
-          className="mt-3"
-        >
-          <Button
-            variant="primary"
-            onClick={() => (window.location.href = "/login")}
-          >
-            Go to Login
-          </Button>
-        </motion.div>
+        <div className="d-flex justify-content-center py-5">
+          <GopherLoader />
+        </div>
       </PageShell>
     );
   }

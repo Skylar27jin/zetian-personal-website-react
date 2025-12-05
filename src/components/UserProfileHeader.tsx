@@ -99,11 +99,11 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
           ) : (
-            <div className="w-100 h-100 d-flex align-items-center justify-content-center">
-              <span role="img" aria-label="gopher">
-                🐹
-              </span>
-            </div>
+                
+              <img 
+                src="../gopher_front.png"
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
           )}
         </div>
 
@@ -160,7 +160,7 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
               <div className="fw-bold" style={{ fontSize: "1.1rem" }}>
                 {localProfile.postLikeReceivedCount}
               </div>
-              <div className="small">likes received</div>
+              <div className="small">likes got</div>
             </div>
           </div>
         </div>
