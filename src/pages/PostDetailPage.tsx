@@ -43,6 +43,9 @@ import PostMediaDisplay from "../components/PostMediaDisplay";
 import ScrollablePanel from "../components/ScrollPanel";
 import ReplyPreview from "../components/ReplyPreview";
 
+
+const ICON_SIZE = 28;
+
 function formatTime(isoString: string): string {
   try {
     const date = new Date(isoString);
@@ -712,43 +715,66 @@ export default function PostDetailPage() {
 
                   {/* 右侧按钮组 */}
                   <div className="d-inline-flex gap-2 ms-auto align-items-center">
-                    {/* Like */}
-                    <motion.div whileTap={{ scale: 1.08 }}>
-                      <Button
-                        size="sm"
-                        variant={
-                          post.is_liked_by_user
-                            ? "primary"
-                            : "outline-secondary"
-                        }
-                        onClick={() =>
-                          post.is_liked_by_user
-                            ? handleUnlike(post.id)
-                            : handleLike(post.id)
-                        }
-                      >
-                        {post.is_liked_by_user ? "💙" : "👍"} {post.like_count}
-                      </Button>
-                    </motion.div>
-
-                    {/* Fav */}
-                    <motion.div whileTap={{ scale: 1.08 }}>
-                      <Button
-                        size="sm"
-                        variant={
-                          post.is_fav_by_user
-                            ? "warning"
-                            : "outline-secondary"
-                        }
-                        onClick={() =>
-                          post.is_fav_by_user
-                            ? handleUnfav(post.id)
-                            : handleFav(post.id)
-                        }
-                      >
-                        {post.is_fav_by_user ? "🌟" : "⭐"} {post.fav_count}
-                      </Button>
-                    </motion.div>
+                  {/* Like button */}
+                  <motion.div whileTap={{ scale: 1.15 }} transition={{ duration: 0.12 }}>
+                    <Button
+                      size="sm"
+                      variant="light"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        post.is_liked_by_user ? onUnlike(post.id) : onLike(post.id);
+                      }}
+                      className="d-inline-flex align-items-center gap-1"
+                      style={{
+                        border: "none",
+                        boxShadow: "none",
+                        background: "transparent",
+                        padding: 0,
+                      }}
+                    >
+                      <img
+                        src={post.is_liked_by_user ? "/hearted.png" : "/heart.png"}
+                        alt="like"
+                        style={{
+                          width: ICON_SIZE,
+                          height: ICON_SIZE,
+                          display: "block",        // 防止 baseline 影响对齐
+                        }}
+                      />
+                      <span style={{ lineHeight: 1 }}>{post.like_count ?? 0}</span>
+                    </Button>
+                  </motion.div>
+        
+                  {/* Fav button */}
+                  <motion.div whileTap={{ scale: 1.15 }} transition={{ duration: 0.12 }}>
+                    <Button
+                      size="sm"
+                      variant="light"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        post.is_fav_by_user ? onUnfav(post.id) : onFav(post.id);
+                      }}
+                      className="d-inline-flex align-items-center gap-1"
+                      style={{
+                        border: "none",
+                        boxShadow: "none",
+                        background: "transparent",
+                        padding: 0,
+                      }}
+                    >
+                      <img
+                        src={post.is_fav_by_user ? "/starred.png" : "/star.png"}
+                        alt="favorite"
+                        style={{
+                          width: ICON_SIZE,
+                          height: ICON_SIZE,
+                          display: "block",
+                          // transform: "scale(1.35)",
+                        }}
+                      />
+                      <span style={{ lineHeight: 1 }}>{post.fav_count ?? 0}</span>
+                    </Button>
+                  </motion.div>
 
                     {/* 三点菜单 */}
                     <PostActionsDropdown

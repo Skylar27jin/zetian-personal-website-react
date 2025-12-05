@@ -10,7 +10,7 @@ import PostActionsDropdown from "./PostActionsDropDown";
 import ReplyPreview from "./ReplyPreview";
 
 const MAX_LINES = 3;
-
+const ICON_SIZE = 24;
 interface PostCardProps {
   post: Post;
   onLike: (postId: number) => void;
@@ -265,43 +265,66 @@ export default function PostCard(props: PostCardProps) {
           </div>
 
           <div className="d-inline-flex gap-2 flex-shrink-0">
-            <motion.div
-              whileTap={{ scale: 1.15 }}
-              transition={{ duration: 0.12 }}
+            {/* Like button */}
+          <motion.div whileTap={{ scale: 1.15 }} transition={{ duration: 0.12 }}>
+            <Button
+              size="sm"
+              variant="light"
+              onClick={(e) => {
+                e.stopPropagation();
+                post.is_liked_by_user ? onUnlike(post.id) : onLike(post.id);
+              }}
+              className="d-inline-flex align-items-center gap-1"
+              style={{
+                border: "none",
+                boxShadow: "none",
+                background: "transparent",
+                padding: 0,
+              }}
             >
-              <Button
-                size="sm"
-                variant={
-                  post.is_liked_by_user ? "primary" : "outline-secondary"
-                }
-                onClick={(e) => {
-                  e.stopPropagation();
-                  post.is_liked_by_user
-                    ? onUnlike(post.id)
-                    : onLike(post.id);
+              <img
+                src={post.is_liked_by_user ? "/hearted.png" : "/heart.png"}
+                alt="like"
+                style={{
+                  width: ICON_SIZE,
+                  height: ICON_SIZE,
+                  display: "block",        // 防止 baseline 影响对齐
                 }}
-              >
-                {post.is_liked_by_user ? "🩷" : "👍"} {post.like_count ?? 0}
-              </Button>
-            </motion.div>
+              />
+              <span style={{ lineHeight: 1 }}>{post.like_count ?? 0}</span>
+            </Button>
+          </motion.div>
 
-            <motion.div
-              whileTap={{ scale: 1.15 }}
-              transition={{ duration: 0.12 }}
+          {/* Fav button */}
+          <motion.div whileTap={{ scale: 1.15 }} transition={{ duration: 0.12 }}>
+            <Button
+              size="sm"
+              variant="light"
+              onClick={(e) => {
+                e.stopPropagation();
+                post.is_fav_by_user ? onUnfav(post.id) : onFav(post.id);
+              }}
+              className="d-inline-flex align-items-center gap-1"
+              style={{
+                border: "none",
+                boxShadow: "none",
+                background: "transparent",
+                padding: 0,
+              }}
             >
-              <Button
-                size="sm"
-                variant={
-                  post.is_fav_by_user ? "warning" : "outline-secondary"
-                }
-                onClick={(e) => {
-                  e.stopPropagation();
-                  post.is_fav_by_user ? onUnfav(post.id) : onFav(post.id);
+              <img
+                src={post.is_fav_by_user ? "/starred.png" : "/star.png"}
+                alt="favorite"
+                style={{
+                  width: ICON_SIZE,
+                  height: ICON_SIZE,
+                  display: "block",
+                  // transform: "scale(1.35)",
                 }}
-              >
-                {post.is_fav_by_user ? "🌟" : "⭐"} {post.fav_count ?? 0}
-              </Button>
-            </motion.div>
+              />
+              <span style={{ lineHeight: 1 }}>{post.fav_count ?? 0}</span>
+            </Button>
+          </motion.div>
           </div>
         </div>
       </Card.Body>
