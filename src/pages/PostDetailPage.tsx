@@ -722,7 +722,7 @@ export default function PostDetailPage() {
                       variant="light"
                       onClick={(e) => {
                         e.stopPropagation();
-                        post.is_liked_by_user ? onUnlike(post.id) : onLike(post.id);
+                        post.is_liked_by_user ? unlikePost(post.id) : likePost(post.id);
                       }}
                       className="d-inline-flex align-items-center gap-1"
                       style={{
@@ -752,7 +752,7 @@ export default function PostDetailPage() {
                       variant="light"
                       onClick={(e) => {
                         e.stopPropagation();
-                        post.is_fav_by_user ? onUnfav(post.id) : onFav(post.id);
+                        post.is_fav_by_user ? unfavPost(post.id) : favPost(post.id);
                       }}
                       className="d-inline-flex align-items-center gap-1"
                       style={{
