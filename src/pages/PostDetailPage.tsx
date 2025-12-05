@@ -42,6 +42,8 @@ import GopherLoader from "../components/GopherLoader";
 import PostMediaDisplay from "../components/PostMediaDisplay";
 import ScrollablePanel from "../components/ScrollPanel";
 import ReplyPreview from "../components/ReplyPreview";
+import PostReactionButtons from "../components/PostReactionButtons";
+import LoginRequiredModal from "../components/LoginRequiredModal";
 
 
 const ICON_SIZE = 28;
@@ -109,6 +111,8 @@ export default function PostDetailPage() {
   const [authorProfile, setAuthorProfile] = useState<UserProfile | null>(null);
   const [authorProfileLoading, setAuthorProfileLoading] = useState(false);
   const [followBusy, setFollowBusy] = useState(false);
+
+  const [showLoginRequired, setShowLoginRequired] = useState(false);
 
   // URL 参数非法
   if (Number.isNaN(postId)) {
@@ -279,7 +283,8 @@ export default function PostDetailPage() {
   // ====================
   const ensureLogin = () => {
     if (!viewerId || authError) {
-      setActionError("Please log in to like / favorite / follow.");
+      setActionError(null);
+      setShowLoginRequired(true);
       return false;
     }
     return true;
@@ -509,6 +514,7 @@ export default function PostDetailPage() {
     }
   };
 
+
   // ====================
   // 渲染
   // ====================
@@ -712,79 +718,26 @@ export default function PostDetailPage() {
                     💬 {post.comment_count} · 🔁 {post.share_count} · 👁{" "}
                     {post.view_count}
                   </div>
-
+                  
                   {/* 右侧按钮组 */}
                   <div className="d-inline-flex gap-2 ms-auto align-items-center">
-                  {/* Like button */}
-                  <motion.div whileTap={{ scale: 1.15 }} transition={{ duration: 0.12 }}>
-                    <Button
-                      size="sm"
-                      variant="light"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        post.is_liked_by_user ? unlikePost(post.id) : likePost(post.id);
-                      }}
-                      className="d-inline-flex align-items-center gap-1"
-                      style={{
-                        border: "none",
-                        boxShadow: "none",
-                        background: "transparent",
-                        padding: 0,
-                      }}
-                    >
-                      <img
-                        src={post.is_liked_by_user ? "/hearted.png" : "/heart.png"}
-                        alt="like"
-                        style={{
-                          width: ICON_SIZE,
-                          height: ICON_SIZE,
-                          display: "block",        // 防止 baseline 影响对齐
-                        }}
-                      />
-                      <span style={{ lineHeight: 1 }}>{post.like_count ?? 0}</span>
-                    </Button>
-                  </motion.div>
-        
-                  {/* Fav button */}
-                  <motion.div whileTap={{ scale: 1.15 }} transition={{ duration: 0.12 }}>
-                    <Button
-                      size="sm"
-                      variant="light"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        post.is_fav_by_user ? unfavPost(post.id) : favPost(post.id);
-                      }}
-                      className="d-inline-flex align-items-center gap-1"
-                      style={{
-                        border: "none",
-                        boxShadow: "none",
-                        background: "transparent",
-                        padding: 0,
-                      }}
-                    >
-                      <img
-                        src={post.is_fav_by_user ? "/starred.png" : "/star.png"}
-                        alt="favorite"
-                        style={{
-                          width: ICON_SIZE,
-                          height: ICON_SIZE,
-                          display: "block",
-                          // transform: "scale(1.35)",
-                        }}
-                      />
-                      <span style={{ lineHeight: 1 }}>{post.fav_count ?? 0}</span>
-                    </Button>
-                  </motion.div>
+                    <PostReactionButtons
+                      post={post}
+                      viewerId={viewerId}
+                      onLike={handleLike}
+                      onUnlike={handleUnlike}
+                      onFav={handleFav}
+                      onUnfav={handleUnfav}
+                      iconSize={ICON_SIZE}
+                      onRequireLogin={() => setShowLoginRequired(true)}
+                      // 详情页不是点击整卡片，所以可以关闭 stopPropagation
+                      stopPropagation={false}
+                    />
 
-                    {/* 三点菜单 */}
                     <PostActionsDropdown
                       onEdit={isOwner ? openEditModal : undefined}
-                      onDelete={
-                        isOwner ? () => setShowDeleteModal(true) : undefined
-                      }
-                      onReport={
-                        !isOwner ? () => setShowReportModal(true) : undefined
-                      }
+                      onDelete={isOwner ? () => setShowDeleteModal(true) : undefined}
+                      onReport={!isOwner ? () => setShowReportModal(true) : undefined}
                       onReply={viewerId ? handleReply : undefined}
                       deleting={isOwner ? deleting : false}
                     />
@@ -952,6 +905,11 @@ export default function PostDetailPage() {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      <LoginRequiredModal
+        show={showLoginRequired}
+        onHide={() => setShowLoginRequired(false)}
+      />
     </div>
   );
 }

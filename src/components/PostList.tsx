@@ -1,10 +1,11 @@
 // src/components/PostList.tsx
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Row, Col, Button, Alert, Spinner } from "react-bootstrap";
 import { motion } from "framer-motion";
 import PostCard from "./PostCard";
 import GopherLoader from "./GopherLoader";
 import type { Post } from "../types/post";
+import LoginRequiredModal from "./LoginRequiredModal";
 
 interface ForumPostListSectionProps {
   posts: Post[];
@@ -59,6 +60,8 @@ const ForumPostListSection: React.FC<ForumPostListSectionProps> = ({
   disableLoadMore = false,
   quotedPosts = {},
 }) => {
+
+  const [showLoginRequired, setShowLoginRequired] = useState(false);
   // 👇 底部“哨兵”元素，用于触发 infinite scroll
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
@@ -103,6 +106,7 @@ const ForumPostListSection: React.FC<ForumPostListSectionProps> = ({
               onUnlike={onUnlike}
               onFav={onFav}
               onUnfav={onUnfav}
+              onRequireLogin={() => setShowLoginRequired(true)}
               onEdit={enableEdit ? onEdit : undefined}
               onDelete={enableEdit ? onDelete : undefined}
               onReport={onReport}
@@ -170,6 +174,10 @@ const ForumPostListSection: React.FC<ForumPostListSectionProps> = ({
           style={{ height: 1, marginTop: 8 }}
         />
       </div>
+      <LoginRequiredModal
+        show={showLoginRequired}
+        onHide={() => setShowLoginRequired(false)}
+      />
     </>
   );
 };
