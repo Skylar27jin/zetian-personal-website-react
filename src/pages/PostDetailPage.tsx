@@ -42,6 +42,11 @@ import GopherLoader from "../components/GopherLoader";
 import PostMediaDisplay from "../components/PostMediaDisplay";
 import ScrollablePanel from "../components/ScrollPanel";
 import ReplyPreview from "../components/ReplyPreview";
+import PostReactionButtons from "../components/PostReactionButtons";
+import LoginRequiredModal from "../components/LoginRequiredModal";
+
+
+const ICON_SIZE = 28;
 
 function formatTime(isoString: string): string {
   try {
@@ -106,6 +111,8 @@ export default function PostDetailPage() {
   const [authorProfile, setAuthorProfile] = useState<UserProfile | null>(null);
   const [authorProfileLoading, setAuthorProfileLoading] = useState(false);
   const [followBusy, setFollowBusy] = useState(false);
+
+  const [showLoginRequired, setShowLoginRequired] = useState(false);
 
   // URL 参数非法
   if (Number.isNaN(postId)) {
@@ -276,7 +283,8 @@ export default function PostDetailPage() {
   // ====================
   const ensureLogin = () => {
     if (!viewerId || authError) {
-      setActionError("Please log in to like / favorite / follow.");
+      setActionError(null);
+      setShowLoginRequired(true);
       return false;
     }
     return true;
@@ -506,6 +514,7 @@ export default function PostDetailPage() {
     }
   };
 
+
   // ====================
   // 渲染
   // ====================
@@ -709,56 +718,26 @@ export default function PostDetailPage() {
                     💬 {post.comment_count} · 🔁 {post.share_count} · 👁{" "}
                     {post.view_count}
                   </div>
-
+                  
                   {/* 右侧按钮组 */}
                   <div className="d-inline-flex gap-2 ms-auto align-items-center">
-                    {/* Like */}
-                    <motion.div whileTap={{ scale: 1.08 }}>
-                      <Button
-                        size="sm"
-                        variant={
-                          post.is_liked_by_user
-                            ? "primary"
-                            : "outline-secondary"
-                        }
-                        onClick={() =>
-                          post.is_liked_by_user
-                            ? handleUnlike(post.id)
-                            : handleLike(post.id)
-                        }
-                      >
-                        {post.is_liked_by_user ? "💙" : "👍"} {post.like_count}
-                      </Button>
-                    </motion.div>
+                    <PostReactionButtons
+                      post={post}
+                      viewerId={viewerId}
+                      onLike={handleLike}
+                      onUnlike={handleUnlike}
+                      onFav={handleFav}
+                      onUnfav={handleUnfav}
+                      iconSize={ICON_SIZE}
+                      onRequireLogin={() => setShowLoginRequired(true)}
+                      // 详情页不是点击整卡片，所以可以关闭 stopPropagation
+                      stopPropagation={false}
+                    />
 
-                    {/* Fav */}
-                    <motion.div whileTap={{ scale: 1.08 }}>
-                      <Button
-                        size="sm"
-                        variant={
-                          post.is_fav_by_user
-                            ? "warning"
-                            : "outline-secondary"
-                        }
-                        onClick={() =>
-                          post.is_fav_by_user
-                            ? handleUnfav(post.id)
-                            : handleFav(post.id)
-                        }
-                      >
-                        {post.is_fav_by_user ? "🌟" : "⭐"} {post.fav_count}
-                      </Button>
-                    </motion.div>
-
-                    {/* 三点菜单 */}
                     <PostActionsDropdown
                       onEdit={isOwner ? openEditModal : undefined}
-                      onDelete={
-                        isOwner ? () => setShowDeleteModal(true) : undefined
-                      }
-                      onReport={
-                        !isOwner ? () => setShowReportModal(true) : undefined
-                      }
+                      onDelete={isOwner ? () => setShowDeleteModal(true) : undefined}
+                      onReport={!isOwner ? () => setShowReportModal(true) : undefined}
                       onReply={viewerId ? handleReply : undefined}
                       deleting={isOwner ? deleting : false}
                     />
@@ -926,6 +905,11 @@ export default function PostDetailPage() {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      <LoginRequiredModal
+        show={showLoginRequired}
+        onHide={() => setShowLoginRequired(false)}
+      />
     </div>
   );
 }

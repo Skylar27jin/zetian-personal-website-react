@@ -8,9 +8,10 @@ import formatTime from "../pkg/TimeFormatter";
 import RichContent from "./RichContent";
 import PostActionsDropdown from "./PostActionsDropDown";
 import ReplyPreview from "./ReplyPreview";
+import PostReactionButtons from "./PostReactionButtons";
 
 const MAX_LINES = 3;
-
+const ICON_SIZE = 24;
 interface PostCardProps {
   post: Post;
   onLike: (postId: number) => void;
@@ -24,6 +25,8 @@ interface PostCardProps {
   onReport?: (post: Post) => void;
 
   quotedPostsMap?: Record<number, Post>;
+
+  onRequireLogin?: () => void;
 }
 
 export default function PostCard(props: PostCardProps) {
@@ -38,6 +41,8 @@ export default function PostCard(props: PostCardProps) {
     onDelete,
     onReport,
     quotedPostsMap,
+
+        onRequireLogin,
   } = props;
 
   const navigate = useNavigate();
@@ -258,51 +263,25 @@ export default function PostCard(props: PostCardProps) {
 
         {/* meta + like/fav */}
         <div className="d-flex align-items-center text-muted small mb-2">
+          {/* 左侧：meta 信息 */}
           <div className="flex-grow-1">
             {post.category_name && <>{post.category_name} · </>}
             {post.school_name} · {formatTime(post.created_at, "relative")}
             {post.location && <> · {post.location}</>}
           </div>
 
-          <div className="d-inline-flex gap-2 flex-shrink-0">
-            <motion.div
-              whileTap={{ scale: 1.15 }}
-              transition={{ duration: 0.12 }}
-            >
-              <Button
-                size="sm"
-                variant={
-                  post.is_liked_by_user ? "primary" : "outline-secondary"
-                }
-                onClick={(e) => {
-                  e.stopPropagation();
-                  post.is_liked_by_user
-                    ? onUnlike(post.id)
-                    : onLike(post.id);
-                }}
-              >
-                {post.is_liked_by_user ? "🩷" : "👍"} {post.like_count ?? 0}
-              </Button>
-            </motion.div>
-
-            <motion.div
-              whileTap={{ scale: 1.15 }}
-              transition={{ duration: 0.12 }}
-            >
-              <Button
-                size="sm"
-                variant={
-                  post.is_fav_by_user ? "warning" : "outline-secondary"
-                }
-                onClick={(e) => {
-                  e.stopPropagation();
-                  post.is_fav_by_user ? onUnfav(post.id) : onFav(post.id);
-                }}
-              >
-                {post.is_fav_by_user ? "🌟" : "⭐"} {post.fav_count ?? 0}
-              </Button>
-            </motion.div>
-          </div>
+          {/* 右侧：点赞 / 收藏 */}
+          <PostReactionButtons
+            post={post}
+            viewerId={viewerId}
+            onLike={onLike}
+            onUnlike={onUnlike}
+            onFav={onFav}
+            onUnfav={onUnfav}
+            iconSize={28}
+            onRequireLogin={onRequireLogin}
+            stopPropagation={true} // 卡片要阻止冒泡，避免跳详情
+          />
         </div>
       </Card.Body>
     </Card>

@@ -24,14 +24,16 @@ export default function LoginPage() {
     try {
       const resp: LoginResp = await loginUser(form);
 
-      if (resp.isSuccessful) {
-        setMsg(`✅ Welcome, ${resp.userName}`);
-        setTimeout(() => navigate("/me"), 800);
+    if (resp.isSuccessful) {
+      setMsg(`Welcome, ${resp.userName}`);
+      setTimeout(() => {
+        window.location.href = "/me";   // 强制整页刷新，AuthProvider 重新跑 me()
+      }, 500);
       } else {
-        setMsg(`❌ ${resp.errorMessage}`);
+        setMsg(`${resp.errorMessage}`);
       }
     } catch (e) {
-      setMsg("❌ Network/Server error");
+      setMsg("Network/Server error");
     } finally {
       setLoading(false);
     }

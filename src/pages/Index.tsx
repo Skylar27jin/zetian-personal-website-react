@@ -55,7 +55,7 @@ export default function Index() {
 
       <button
         className="btn btn-dark mb-3"
-        onClick={() => navigate("/me")}
+        onClick={() => navigate("/school")}
       >
         Go to a forum website that I am developing💬
       </button>

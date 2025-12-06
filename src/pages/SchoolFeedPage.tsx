@@ -8,7 +8,6 @@ import {
   Form,
   Card,
 } from "react-bootstrap";
-import { motion } from "framer-motion";
 
 import Navbar from "../components/Navbar";
 import { useMeAuth } from "../hooks/useMeAuth";
@@ -38,6 +37,7 @@ function PageShell({ children }: { children: React.ReactNode }) {
 }
 
 const DEFAULT_SCHOOL_ID = 1; // BU
+let schoolsCache: School[] | null = null;
 
 export default function SchoolFeedPage() {
   // URL: /school/:id?   -> 如果没传，默认 BU
@@ -263,10 +263,25 @@ function SchoolSelectorForFeed(props: { currentSchoolId: number }) {
   useEffect(() => {
     let cancelled = false;
 
-    (async () => {
+    async function loadSchools() {
+      setSchoolError(null);
+
+      // 1. 先用缓存，有的话直接用，不打接口
+      if (schoolsCache && schoolsCache.length > 0) {
+        setSchools(schoolsCache);
+
+        const currentSchool = schoolsCache.find(
+          (s) => s.id === currentSchoolId
+        );
+        if (currentSchool) {
+          setSchoolSearch(currentSchool.short_name || currentSchool.name);
+        }
+        return;
+      }
+
+      // 2. 没有缓存时才真正调一次 getAllSchools
       try {
         setSchoolsLoading(true);
-        setSchoolError(null);
 
         const resp = await getAllSchools();
         if (cancelled) return;
@@ -275,10 +290,11 @@ function SchoolSelectorForFeed(props: { currentSchoolId: number }) {
           setSchoolError(resp.errorMessage || "Failed to load schools");
           return;
         }
+
         const list = resp.Schools || [];
+        schoolsCache = list;           // 写入缓存
         setSchools(list);
 
-        // 如果当前 URL 中有 schoolId，就把搜索框初始值设成对应学校名
         const currentSchool = list.find((s) => s.id === currentSchoolId);
         if (currentSchool) {
           setSchoolSearch(currentSchool.short_name || currentSchool.name);
@@ -292,12 +308,15 @@ function SchoolSelectorForFeed(props: { currentSchoolId: number }) {
           setSchoolsLoading(false);
         }
       }
-    })();
+    }
+
+    loadSchools();
 
     return () => {
       cancelled = true;
     };
   }, [currentSchoolId]);
+
 
   const filteredSchools = schools.filter((s) => {
     if (!schoolSearch.trim()) return true;
