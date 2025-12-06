@@ -12,7 +12,6 @@ import {
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
-
 import { useMyProfile } from "../hooks/useMyProfile";
 import UserProfileHeader from "../components/UserProfileHeader";
 import type { UserProfile } from "../types/user";
@@ -20,12 +19,24 @@ import type { UserProfile } from "../types/user";
 import Navbar from "../components/Navbar";
 import { useMeAuth } from "../hooks/useMeAuth";
 import { usePersonalPosts } from "../hooks/usePersonalPosts";
-import { deletePost, editPost } from "../api/postApi";
+import { useLikedPosts } from "../hooks/useLikedPosts";
+import { useFavedPosts } from "../hooks/useFavedPosts";
+import {
+  deletePost,
+  editPost,
+  likePost,
+  unlikePost,
+  favPost,
+  unfavPost,
+} from "../api/postApi";
 import type { Post } from "../types/post";
 import GopherLoader from "../components/GopherLoader";
 import PostList from "../components/PostList";
 import Editor from "../components/Editor";
 import UserListModal from "../components/UserListModal";
+import PostSourceTabs, {
+  PostSourceKey,
+} from "../components/PostSourceTabs";
 
 // --------------------- 通用页面壳子 ---------------------
 function PageShell({ children }: { children: React.ReactNode }) {
@@ -52,16 +63,13 @@ function MyForumHeader(props: {
     authLoading,
     userId,
     username,
-    // email 暂时没用到，先留着
     showCreateButton = false,
     onClickCreate,
   } = props;
 
   return (
     <header className="mb-4">
-      {/* 第一行：左边 My Forum + View，右边 Create */}
       <div className="d-flex justify-content-between align-items-center mb-1">
-        {/* 左侧：My Forum + View Public Profile */}
         <div className="d-flex align-items-center gap-2">
           <h1 className="fw-bold mb-0">My Forum</h1>
 
@@ -82,9 +90,7 @@ function MyForumHeader(props: {
           )}
         </div>
 
-        {/* 右侧：Create New Post */}
-        {false && showCreateButton && !authLoading && userId 
-        && (
+        {false && showCreateButton && !authLoading && userId && (
           <motion.div
             whileTap={{ scale: 1.08 }}
             transition={{ duration: 0.12 }}
@@ -97,8 +103,7 @@ function MyForumHeader(props: {
               + Create New Post
             </Button>
           </motion.div>
-        )
-        }
+        )}
       </div>
     </header>
   );
@@ -106,13 +111,12 @@ function MyForumHeader(props: {
 
 // --------------------- 页面主体 ---------------------
 export default function MyForumProfilePage() {
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
   const { authLoading, authError, userId, username, email } = useMeAuth();
 
   const isLoggedIn = !!userId && !authError;
   const safeUserId = userId ?? 0;
   const enabled = !authLoading && isLoggedIn;
-
 
   const {
     profile,
@@ -120,27 +124,20 @@ export default function MyForumProfilePage() {
     error: profileError,
     setProfile,
   } = useMyProfile(userId ?? null, enabled);
-  
-  const {
-    posts,
-    loadingPosts,
-    postsError,
-    hasMore,
-    loadMore,
-    handleLike,
-    handleUnlike,
-    handleFav,
-    handleUnfav,
-    setPosts,
-    setHasMore,
-    quotedPosts,
-  } = usePersonalPosts(safeUserId, enabled);
+
+  // 三种数据源
+  const personal = usePersonalPosts(safeUserId, enabled);
+  const liked = useLikedPosts(safeUserId, enabled);
+  const faved = useFavedPosts(safeUserId, enabled);
+
+  // 当前 tab
+  const [source, setSource] = useState<PostSourceKey>("posts");
 
   const handleReportPost = (post: Post) => {
     alert(`Report feature coming soon for post #${post.id}`);
   };
 
-  // 统一的 action 错误反馈（edit/delete）
+  // 统一的 action 错误反馈（edit/delete/like/fav）
   const [actionError, setActionError] = useState<string | null>(null);
 
   // 编辑相关状态
@@ -149,7 +146,7 @@ export default function MyForumProfilePage() {
   const [editContent, setEditContent] = useState("");
   const [editSaving, setEditSaving] = useState(false);
 
-  // 删除相关状态：要删除哪一篇 + 倒计时
+  // 删除相关状态
   const [confirmDeletePost, setConfirmDeletePost] = useState<Post | null>(null);
   const [deleteCountdown, setDeleteCountdown] = useState(5);
   const [deleteButtonEnabled, setDeleteButtonEnabled] = useState(false);
@@ -179,15 +176,110 @@ export default function MyForumProfilePage() {
     return () => {
       window.clearInterval(timerId);
     };
-    
   }, [confirmDeletePost]);
-
 
   useEffect(() => {
     if (!authLoading && (!userId || authError)) {
       navigate("/login", { replace: true });
     }
   }, [authLoading, userId, authError, navigate]);
+
+  // ======= 统一点赞 / 收藏操作（所有 tab 同步） =======
+  const applyUpdateToAllSources = (updater: (p: Post) => Post) => {
+    personal.setPosts((prev) => prev.map(updater));
+    liked.setPosts((prev) => prev.map(updater));
+    faved.setPosts((prev) => prev.map(updater));
+  };
+
+  const handleLikeGlobal = async (postId: number) => {
+    setActionError(null);
+    try {
+      const resp = await likePost(postId);
+      if (!resp.isSuccessful) {
+        setActionError(resp.errorMessage || "Failed to like post.");
+        return;
+      }
+
+      applyUpdateToAllSources((p) =>
+        p.id === postId
+          ? {
+              ...p,
+              is_liked_by_user: true,
+              like_count: p.is_liked_by_user ? p.like_count : p.like_count + 1,
+            }
+          : p
+      );
+    } catch (e: any) {
+      setActionError(e?.message || "Network error while liking.");
+    }
+  };
+
+  const handleUnlikeGlobal = async (postId: number) => {
+    setActionError(null);
+    try {
+      const resp = await unlikePost(postId);
+      if (!resp.isSuccessful) {
+        setActionError(resp.errorMessage || "Failed to unlike post.");
+        return;
+      }
+      applyUpdateToAllSources((p) =>
+        p.id === postId
+          ? {
+              ...p,
+              is_liked_by_user: false,
+              like_count: p.is_liked_by_user ? p.like_count - 1 : p.like_count,
+            }
+          : p
+      );
+    } catch (e: any) {
+      setActionError(e?.message || "Network error while unliking.");
+    }
+  };
+
+  const handleFavGlobal = async (postId: number) => {
+    setActionError(null);
+    try {
+      const resp = await favPost(postId);
+      if (!resp.isSuccessful) {
+        setActionError(resp.errorMessage || "Failed to favorite post.");
+        return;
+      }
+      applyUpdateToAllSources((p) =>
+        p.id === postId
+          ? {
+              ...p,
+              is_fav_by_user: true,
+              fav_count: p.is_fav_by_user ? p.fav_count : p.fav_count + 1,
+            }
+          : p
+      );
+    } catch (e: any) {
+      setActionError(e?.message || "Network error while favoriting.");
+    }
+  };
+
+  const handleUnfavGlobal = async (postId: number) => {
+    setActionError(null);
+    try {
+      const resp = await unfavPost(postId);
+      if (!resp.isSuccessful) {
+        setActionError(resp.errorMessage || "Failed to unfavorite post.");
+        return;
+      }
+      applyUpdateToAllSources((p) =>
+        p.id === postId
+          ? {
+              ...p,
+              is_fav_by_user: false,
+              fav_count: p.is_fav_by_user ? p.fav_count - 1 : p.fav_count,
+            }
+          : p
+      );
+    } catch (e: any) {
+      setActionError(e?.message || "Network error while unfavoriting.");
+    }
+  };
+
   // ======= 条件 return =======
 
   if (!authLoading && (!userId || authError)) {
@@ -207,8 +299,7 @@ export default function MyForumProfilePage() {
     );
   }
 
-  // 首次加载帖子中（已登录）
-  if (loadingPosts && posts.length === 0 && isLoggedIn) {
+  if (personal.loadingPosts && personal.posts.length === 0 && isLoggedIn) {
     return (
       <PageShell>
         <MyForumHeader
@@ -234,7 +325,6 @@ export default function MyForumProfilePage() {
     setActionError(null);
   };
 
-  // 保存编辑
   const handleSaveEdit = async () => {
     if (!editingPost) return;
     setActionError(null);
@@ -253,7 +343,14 @@ export default function MyForumProfilePage() {
       }
 
       const updated = resp.post;
-      setPosts((prev) =>
+
+      personal.setPosts((prev) =>
+        prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p))
+      );
+      liked.setPosts((prev) =>
+        prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p))
+      );
+      faved.setPosts((prev) =>
         prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p))
       );
 
@@ -265,14 +362,12 @@ export default function MyForumProfilePage() {
     }
   };
 
-  // 点击 Delete（来自卡片上的菜单），只是打开确认 Modal
   const requestDeletePost = (post: Post) => {
     if (!userId || userId !== post.user_id) return;
     setActionError(null);
     setConfirmDeletePost(post);
   };
 
-  // 真正执行删除
   const handleConfirmDeletePost = async () => {
     if (!confirmDeletePost || !userId || userId !== confirmDeletePost.user_id) {
       return;
@@ -289,7 +384,17 @@ export default function MyForumProfilePage() {
         return;
       }
 
-      setPosts((prev) => prev.filter((p) => p.id !== confirmDeletePost.id));
+      // 从三类列表都删掉
+      personal.setPosts((prev) =>
+        prev.filter((p) => p.id !== confirmDeletePost.id)
+      );
+      liked.setPosts((prev) =>
+        prev.filter((p) => p.id !== confirmDeletePost.id)
+      );
+      faved.setPosts((prev) =>
+        prev.filter((p) => p.id !== confirmDeletePost.id)
+      );
+
       setConfirmDeletePost(null);
     } catch (e: any) {
       setActionError(e?.message || "Network error while deleting.");
@@ -299,14 +404,43 @@ export default function MyForumProfilePage() {
   };
 
   const handleCloseDeleteModal = () => {
-    if (deletingPostId !== null) return; // 正在删的时候不要关
+    if (deletingPostId !== null) return;
     setConfirmDeletePost(null);
   };
+
+  // 根据当前 tab 选择显示的数据源
+  let currentPosts = personal.posts;
+  let currentLoading = personal.loadingPosts;
+  let currentError = personal.postsError;
+  let currentHasMore = personal.hasMore;
+  let currentLoadMore = personal.loadMore;
+  let currentSetPosts = personal.setPosts;
+  let currentSetHasMore = personal.setHasMore;
+  let currentQuoted = personal.quotedPosts;
+
+  if (source === "liked") {
+    currentPosts = liked.posts;
+    currentLoading = liked.loadingPosts;
+    currentError = liked.postsError;
+    currentHasMore = liked.hasMore;
+    currentLoadMore = liked.loadMore;
+    currentSetPosts = liked.setPosts;
+    currentSetHasMore = liked.setHasMore;
+    currentQuoted = liked.quotedPosts;
+  } else if (source === "faved") {
+    currentPosts = faved.posts;
+    currentLoading = faved.loadingPosts;
+    currentError = faved.postsError;
+    currentHasMore = faved.hasMore;
+    currentLoadMore = faved.loadMore;
+    currentSetPosts = faved.setPosts;
+    currentSetHasMore = faved.setHasMore;
+    currentQuoted = faved.quotedPosts;
+  }
 
   // ======= 正常渲染 =======
   return (
     <PageShell>
-      {/* Header：左标题+登录信息*/}
       <MyForumHeader
         authLoading={authLoading}
         userId={userId}
@@ -315,14 +449,15 @@ export default function MyForumProfilePage() {
         showCreateButton={true}
         onClickCreate={() => (window.location.href = "/post/create")}
       />
+
       {profile && (
         <div className="mb-3">
-          <UserProfileHeader 
-            profile={profile} 
-            onChange={setProfile} 
-            onFollowersClick={() => setShowFollowers(true)} 
-            onFollowingClick={() => setShowFollowing(true)} 
-            />
+          <UserProfileHeader
+            profile={profile}
+            onChange={setProfile}
+            onFollowersClick={() => setShowFollowers(true)}
+            onFollowingClick={() => setShowFollowing(true)}
+          />
           <UserListModal
             show={showFollowers}
             onClose={() => setShowFollowers(false)}
@@ -337,6 +472,11 @@ export default function MyForumProfilePage() {
             type="following"
             title="Following"
           />
+          <PostSourceTabs
+            active={source}
+            onChange={setSource}
+            isSelf={true}
+          />
         </div>
         
       )}
@@ -347,39 +487,45 @@ export default function MyForumProfilePage() {
         </Alert>
       )}
 
-      {/* action 错误提示（edit/delete） */}
       {actionError && (
         <Alert variant="danger" className="py-2">
           {actionError}
         </Alert>
       )}
 
-      {/* 帖子列表 */}
-      <PostList
-        posts={posts}
-        loadingPosts={loadingPosts}
-        postsError={postsError}
-        hasMore={hasMore}
-        loadMore={loadMore}
-        onRefresh={() => {
-          setPosts([]);
-          setHasMore(true);
-          setTimeout(() => loadMore(), 0);
-        }}
-        canRefresh={!authLoading}
-        onLike={handleLike}
-        onUnlike={handleUnlike}
-        onFav={handleFav}
-        onUnfav={handleUnfav}
-        viewerId={userId ?? null}
-        enableEdit={true}
-        onEdit={openEditModal}
-        onDelete={requestDeletePost}
-        deletingPostId={deletingPostId}
-        disableLoadMore={authLoading}
-        onReport={handleReportPost}
-        quotedPosts={quotedPosts}
-      />
+
+      {/* 当前 tab 首次加载时，用 GopherLoader 顶住首屏 */}
+      {currentLoading && currentPosts.length === 0 ? (
+        <div className="d-flex justify-content-center py-5">
+          <GopherLoader />
+        </div>
+      ) : (
+        <PostList
+          posts={currentPosts}
+          loadingPosts={currentLoading}
+          postsError={currentError}
+          hasMore={currentHasMore}
+          loadMore={currentLoadMore}
+          onRefresh={() => {
+            currentSetPosts([]);
+            currentSetHasMore(true);
+            setTimeout(() => currentLoadMore(), 0);
+          }}
+          canRefresh={!authLoading}
+          onLike={handleLikeGlobal}
+          onUnlike={handleUnlikeGlobal}
+          onFav={handleFavGlobal}
+          onUnfav={handleUnfavGlobal}
+          viewerId={userId ?? null}
+          enableEdit={source === "posts"}
+          onEdit={openEditModal}
+          onDelete={requestDeletePost}
+          deletingPostId={deletingPostId}
+          disableLoadMore={authLoading}
+          onReport={handleReportPost}
+          quotedPosts={currentQuoted}
+        />
+      )}
 
       {/* Edit Modal */}
       <Modal show={!!editingPost} onHide={() => setEditingPost(null)} centered>
@@ -401,8 +547,8 @@ export default function MyForumProfilePage() {
             <Form.Group className="mb-3">
               <Form.Label>Content</Form.Label>
               <Editor
-                value={editContent}              // 占位符文本（含 :emoji_xxx:）
-                onChange={setEditContent}        // 实时回传占位符文本
+                value={editContent}
+                onChange={setEditContent}
                 placeholder="Write something… (supports :emoji_gopher_happy: )"
                 minRows={10}
                 autoFocus
@@ -435,7 +581,7 @@ export default function MyForumProfilePage() {
         </Modal.Footer>
       </Modal>
 
-      {/* Cute Delete Modal with 5s countdown */}
+      {/* Delete Modal */}
       <Modal
         show={!!confirmDeletePost}
         onHide={handleCloseDeleteModal}

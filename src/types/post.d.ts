@@ -52,6 +52,8 @@ export interface GetPostByIDReq {
   id: number;
 }
 
+
+
 export interface GetPostByIDResp {
   isSuccessful: boolean;
   errorMessage: string;
@@ -211,3 +213,44 @@ export interface UploadPostMediaResp {
   urls: string[] | null;
 }
 
+
+
+/* ================================
+   GetLikedPosts
+   GET /post/get-liked?user_id=&before=&limit=
+   ================================ */
+
+export interface GetLikedPostsReq {
+  user_id: number;
+  before?: string;
+  limit: number;
+}
+
+export interface GetLikedPostsResp {
+  isSuccessful: boolean;
+  errorMessage: string;
+  posts: Post[];
+  quoted_posts?: Record<string, Post>;
+  next_cursor?: string | null;
+  has_more?: boolean | null;
+}
+
+/* ================================
+   GetFavedPosts
+   GET /post/get-faved?user_id=&before=&limit=
+   ================================ */
+
+export interface GetFavedPostsReq {
+  user_id: number;
+  before?: string;
+  limit: number;
+}
+
+export interface GetFavedPostsResp {
+  isSuccessful: boolean;
+  errorMessage: string;
+  posts: Post[];
+  quoted_posts?: Record<string, Post>;
+  next_cursor?: string | null;
+  has_more?: boolean | null;
+}

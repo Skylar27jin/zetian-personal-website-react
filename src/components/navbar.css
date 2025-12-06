@@ -128,3 +128,37 @@
 }
 .icon-plain:hover { opacity: .8; transform: translateY(-1px); }
 .icon-plain:active { transform: translateY(0); }
+
+
+/* =======================
+   Profile Post Source Tabs
+   和 Navbar feed-tabs 保持一致，但更像抖音个人页
+   ======================= */
+
+.post-source-tabs.feed-tabs {
+  /* 放在 profile header 下方，居中 */
+  justify-content: center;
+  border-top: none;                 /* 不需要上边框 */
+  border-bottom: 1px solid #f3f3f3; /* 下边加一条细线，像分隔 */
+  margin-top: 4px;
+  padding-top: 4px;
+  padding-bottom: 0;
+  gap: 24px;                        /* tab 之间稍微拉开一点 */
+}
+
+/* button 外观干掉默认样式，完全走 feed-tab 的文字样式 */
+.post-source-tab {
+  background: transparent;
+  border: none;
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.post-source-tab:focus {
+  outline: none;
+}
+
+/* 让 active 状态更像抖音：文字更黑一点 */
+.post-source-tab.active {
+  color: #000;
+}

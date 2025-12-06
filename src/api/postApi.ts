@@ -29,6 +29,10 @@ import type {
   UploadPostMediaResp,
   GetFollowingUsersRecentPostsReq,
   GetFollowingUsersRecentPostsResp,
+  GetFavedPostsReq,
+  GetFavedPostsResp,
+  GetLikedPostsResp,
+  GetLikedPostsReq,
 } from "../types/post";
 
 const BASE_URL = import.meta.env.VITE_HERTZ_BASE_URL;
@@ -193,4 +197,28 @@ export async function uploadPostMedia(files: File[]): Promise<string[]> {
   }
 
   return data.urls ?? [];
+}
+
+
+export async function getLikedPosts(
+  req: GetLikedPostsReq
+): Promise<GetLikedPostsResp> {
+  const url = `${BASE_URL}/post/get-liked${buildQuery({
+    user_id: req.user_id,
+    before: req.before,
+    limit: req.limit,
+  })}`;
+  return getJSON<GetLikedPostsResp>(url);
+}
+
+
+export async function getFavedPosts(
+  req: GetFavedPostsReq
+): Promise<GetFavedPostsResp> {
+  const url = `${BASE_URL}/post/get-faved${buildQuery({
+    user_id: req.user_id,
+    before: req.before,
+    limit: req.limit,
+  })}`;
+  return getJSON<GetFavedPostsResp>(url);
 }
