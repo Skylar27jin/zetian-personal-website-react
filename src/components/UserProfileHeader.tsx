@@ -99,11 +99,10 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
           ) : (
-                
-              <img 
-                src="../gopher_front.png"
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              />
+            <img
+              src="../gopher_front.png"
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
           )}
         </div>
 
@@ -163,6 +162,23 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
               <div className="small">likes got</div>
             </div>
           </div>
+
+          {/* 🎓 学校 + 个人简介 */}
+          {(localProfile.school || localProfile.description) && (
+            <div className="mt-2">
+              {localProfile.school && (
+                <div className="small text-muted">{localProfile.school}</div>
+              )}
+              {localProfile.description && (
+                <div
+                  className="small text-muted"
+                  style={{ maxWidth: 420, whiteSpace: "pre-wrap" }}
+                >
+                  {localProfile.description}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -170,7 +186,7 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
       {showFollowButton && (
         <>
           {localProfile.isFollowing ? (
-            // 已关注：Dropdown 二级操作，和 PostDetailPage 类似
+            // 已关注：Dropdown 二级操作
             <Dropdown align="end">
               <Dropdown.Toggle
                 variant="outline-primary"

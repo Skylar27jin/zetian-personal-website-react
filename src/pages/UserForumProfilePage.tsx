@@ -245,69 +245,85 @@ export default function UserProfilePage() {
 
   // ======= normal render =======
 // ======= normal render =======
-return (
-  <PageShell>
-    <header className="mb-4">
-      <div className="d-flex align-items-center gap-2 mb-2">
-        <h1 className="fw-bold mb-0">
-          {isSelf ? "My Public Profile" : `${displayName}'s Posts`}
-        </h1>
+  return (
+    <PageShell>
+      <header className="mb-4">
+        <div className="d-flex align-items-center gap-2 mb-2">
+          <h1 className="fw-bold mb-0">
+            {isSelf ? "My Public Profile" : `${displayName}'s Posts`}
+          </h1>
 
-        {isSelf && (
-          <motion.div
-            whileTap={{ scale: 1.05 }}
-            transition={{ duration: 0.12 }}
-          >
-            <Button
-              variant="outline-secondary"
-              size="sm"
-              className="py-0 px-2 small-button"
-              onClick={() => (window.location.href = "/me")}
+          {isSelf && (
+            <motion.div
+              whileTap={{ scale: 1.05 }}
+              transition={{ duration: 0.12 }}
             >
-              Back to My Forum
-            </Button>
-          </motion.div>
-        )}
-      </div>
-
-      {profile && (
-        <div className="mb-2">
-          <UserProfileHeader
-            profile={profile}
-            onChange={setProfile}
-            onFollowersClick={() => setShowFollowers(true)}
-            onFollowingClick={() => setShowFollowing(true)}
-          />
-          <UserListModal
-            show={showFollowers}
-            onClose={() => setShowFollowers(false)}
-            userId={profile.id}
-            type="followers"
-            title="Followers"
-          />
-          <UserListModal
-            show={showFollowing}
-            onClose={() => setShowFollowing(false)}
-            userId={profile.id}
-            type="following"
-            title="Following"
-          />
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                className="py-0 px-2 small-button"
+                onClick={() => (window.location.href = "/me")}
+              >
+                Back to My Forum
+              </Button>
+            </motion.div>
+          )}
         </div>
-      )}
 
-      {/* 这里 isSelf 记得用 isSelf，而不是写死 true */}
-      <PostSourceTabs
-        active={source}
-        onChange={setSource}
-        isSelf={isSelf}
-      />
+        {profile && (
+          <>
+            {/* 背景图区域 */}
+            {profile.backgroundUrl && (
+              <div
+                className="rounded mb-3"
+                style={{
+                  height: 160,
+                  backgroundImage: `url(${profile.backgroundUrl})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }}
+              />
+            )}
 
-      {(authLoading || userLoading) && (
-        <p className="text-secondary mb-0">
-          <Spinner animation="border" size="sm" /> Loading…
-        </p>
-      )}
-    </header>
+            <div className="mb-2">
+              <UserProfileHeader
+                profile={profile}
+                onChange={setProfile}
+                onFollowersClick={() => setShowFollowers(true)}
+                onFollowingClick={() => setShowFollowing(true)}
+              />
+              <UserListModal
+                show={showFollowers}
+                onClose={() => setShowFollowers(false)}
+                userId={profile.id}
+                type="followers"
+                title="Followers"
+              />
+              <UserListModal
+                show={showFollowing}
+                onClose={() => setShowFollowing(false)}
+                userId={profile.id}
+                type="following"
+                title="Following"
+              />
+            </div>
+          </>
+        )}
+
+        <PostSourceTabs
+          active={source}
+          onChange={setSource}
+          isSelf={isSelf}
+          postCount={profile?.postCount}
+          postFavCount={profile?.postFavCount}
+        />
+
+        {(authLoading || userLoading) && (
+          <p className="text-secondary mb-0">
+            <Spinner animation="border" size="sm" /> Loading…
+          </p>
+        )}
+      </header>
 
     {actionError && (
       <Alert variant="danger" className="py-2">

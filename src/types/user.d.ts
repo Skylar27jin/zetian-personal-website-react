@@ -4,12 +4,21 @@ export interface UserProfile {
   id: number;
   userName: string;
   avatarUrl: string;
+
   followersCount: number;
   followingCount: number;
   postLikeReceivedCount: number;
+
   isFollowing: boolean;
   followedYou: boolean;
   isMe: boolean;
+
+  // 新增字段，对应 thrift UserProfile 10~14
+  postCount: number;
+  postFavCount: number;
+  backgroundUrl: string;
+  school: string;
+  description: string;
 }
 
 export interface SimpleUserProfile {
@@ -50,8 +59,6 @@ export interface GetFolloweesResp {
   hasMore: boolean;
 }
 
-
-
 export interface GetUserProfileResp {
   isSuccessful: boolean;
   errorMessage: string;
@@ -68,9 +75,6 @@ export interface UnfollowUserResp {
   errorMessage: string;
 }
 
-
-
-
 // === Login ===
 export interface LoginReq {
   email: string;
@@ -84,9 +88,8 @@ export interface LoginResp {
   email: string;
 }
 
-
 export interface LogoutReq {
-  //nothing needed, backend will destroy the JWT in cookie
+  // nothing needed, backend will destroy the JWT in cookie
 }
 
 export interface LogoutResp {
@@ -94,16 +97,16 @@ export interface LogoutResp {
   errorMessage: string;
 }
 
-
 export interface ResetPasswordReq {
   email: string;
-  new_password: string;
+  new_password: string; // 对应 thrift: newPassword (api.body="new_password")
 }
 
 export interface ResetPasswordResp {
   isSuccessful: boolean;
   errorMessage: string;
 }
+
 // === SignUp ===
 export interface SignUpReq {
   username: string;
@@ -130,11 +133,59 @@ export interface GetUserResp {
   id: number;
 }
 
-// export interface UploadAvatarReq {
-// }
-
+// Avatar
 export interface UploadAvatarResp {
   isSuccessful: boolean;
   errorMessage: string;
-  avatar_url: string;
+  avatarUrl: string; // 对应 thrift 字段 avatarUrl
+}
+
+/**
+ * Reset username
+ * body: { "user_name": "NewName" }
+ * thrift: ResetUsernameReq.userName (api.body="user_name")
+ */
+export interface ResetUsernameReq {
+  user_name: string;
+}
+
+export interface ResetUsernameResp {
+  isSuccessful: boolean;
+  errorMessage: string;
+}
+
+/**
+ * Update school
+ * body: { "school": "Boston University" }
+ */
+export interface UpdateSchoolReq {
+  school: string;
+}
+
+export interface UpdateSchoolResp {
+  isSuccessful: boolean;
+  errorMessage: string;
+}
+
+/**
+ * Update description / bio
+ * body: { "description": "CS student at BU" }
+ */
+export interface UpdateDescriptionReq {
+  description: string;
+}
+
+export interface UpdateDescriptionResp {
+  isSuccessful: boolean;
+  errorMessage: string;
+}
+
+/**
+ * Update background image
+ * body: multipart/form-data, field name: "background"
+ * thrift: UpdateBackgroundReq {} + UpdateBackgroundResp
+ */
+export interface UpdateBackgroundResp {
+  isSuccessful: boolean;
+  errorMessage: string;
 }

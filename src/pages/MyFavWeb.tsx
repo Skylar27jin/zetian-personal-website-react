@@ -1,4 +1,4 @@
-import ListGroup from "../components/ListGroup";
+import ListGroup from "../components/zetian-introduction/ListGroup";
 import { MouseEvent } from "react";
 
 export default function GetMyFavWebPage() {

@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import ExperienceGroup from "../components/ExperienceGroup";
-import Education from "../components/EducationGroup";
+import Education from "../components/zetian-introduction/EducationGroup";
 
 export default function Index() {
   const navigate = useNavigate();

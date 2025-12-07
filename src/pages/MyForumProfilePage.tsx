@@ -452,12 +452,26 @@ export default function MyForumProfilePage() {
 
       {profile && (
         <div className="mb-3">
+          {/* 背景图区域 */}
+          {profile.backgroundUrl && (
+            <div
+              className="rounded mb-3"
+              style={{
+                height: 160,
+                backgroundImage: `url(${profile.backgroundUrl})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
+            />
+          )}
+
           <UserProfileHeader
             profile={profile}
             onChange={setProfile}
             onFollowersClick={() => setShowFollowers(true)}
             onFollowingClick={() => setShowFollowing(true)}
           />
+
           <UserListModal
             show={showFollowers}
             onClose={() => setShowFollowers(false)}
@@ -472,14 +486,17 @@ export default function MyForumProfilePage() {
             type="following"
             title="Following"
           />
+
           <PostSourceTabs
             active={source}
             onChange={setSource}
             isSelf={true}
+            postCount={profile.postCount}
+            postFavCount={profile.postFavCount}
           />
         </div>
-        
       )}
+
 
       {profileError && (
         <Alert variant="warning" className="py-2">
