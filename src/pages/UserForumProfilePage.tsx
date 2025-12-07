@@ -249,25 +249,9 @@ export default function UserProfilePage() {
     <PageShell>
       <header className="mb-4">
         <div className="d-flex align-items-center gap-2 mb-2">
-          <h1 className="fw-bold mb-0">
-            {isSelf ? "My Public Profile" : `${displayName}'s Posts`}
-          </h1>
-
-          {isSelf && (
-            <motion.div
-              whileTap={{ scale: 1.05 }}
-              transition={{ duration: 0.12 }}
-            >
-              <Button
-                variant="outline-secondary"
-                size="sm"
-                className="py-0 px-2 small-button"
-                onClick={() => (window.location.href = "/me")}
-              >
-                Back to My Forum
-              </Button>
-            </motion.div>
-          )}
+          <h4 className="fw-bold mb-0">
+            {isSelf && "Previewing Your Public Profile"}
+          </h4>
         </div>
 
         {profile && (
@@ -279,6 +263,10 @@ export default function UserProfilePage() {
                 onChange={setProfile}
                 onFollowersClick={() => setShowFollowers(true)}
                 onFollowingClick={() => setShowFollowing(true)}
+                secondaryActionLabel={isSelf ? "Back to My Forum" : undefined}
+                onSecondaryActionClick={
+                  isSelf ? () => (window.location.href = "/me") : undefined
+                }
               />
               <UserListModal
                 show={showFollowers}

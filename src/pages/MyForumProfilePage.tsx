@@ -70,25 +70,6 @@ function MyForumHeader(props: {
   return (
     <header className="mb-4">
       <div className="d-flex justify-content-between align-items-center mb-1">
-        <div className="d-flex align-items-center gap-2">
-          <h1 className="fw-bold mb-0">My Forum</h1>
-
-          {!authLoading && userId && (
-            <motion.div
-              whileTap={{ scale: 1.05 }}
-              transition={{ duration: 0.12 }}
-            >
-              <Button
-                variant="outline-secondary"
-                size="sm"
-                className="py-0 px-2 small-button"
-                onClick={() => (window.location.href = `/user/${userId}`)}
-              >
-                View Public Profile
-              </Button>
-            </motion.div>
-          )}
-        </div>
 
         {false && showCreateButton && !authLoading && userId && (
           <motion.div
@@ -458,6 +439,12 @@ export default function MyForumProfilePage() {
             onChange={setProfile}
             onFollowersClick={() => setShowFollowers(true)}
             onFollowingClick={() => setShowFollowing(true)}
+            secondaryActionLabel="View Public Profile"
+            onSecondaryActionClick={() => {
+              if (userId) {
+                window.location.href = `/user/${userId}`;
+              }
+            }}
           />
 
           <UserListModal
