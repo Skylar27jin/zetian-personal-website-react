@@ -186,11 +186,6 @@ export default function FollowingFeedPage() {
     <PageShell>
       <header className="mb-3">
         <h1 className="fw-bold mb-1">Following Feed</h1>
-        <p className="text-muted small mb-0">
-          {username
-            ? `Hi ${username}, here are the latest posts from people you follow.`
-            : "Latest posts from people you follow."}
-        </p>
       </header>
 
       <PostList

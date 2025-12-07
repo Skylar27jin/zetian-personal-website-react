@@ -44,10 +44,6 @@ export default function AvatarInitials({
       <Dropdown.Menu renderOnMount>
         <Dropdown.Item onClick={onSettingsClick}>Settings</Dropdown.Item>
         <Dropdown.Item href="/me">My Profile</Dropdown.Item>
-        <Dropdown.Divider />
-        <Dropdown.Item className="text-danger" onClick={onLogout}>
-          Logout
-        </Dropdown.Item>
       </Dropdown.Menu>
     </Dropdown>
   );

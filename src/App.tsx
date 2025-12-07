@@ -14,6 +14,8 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import SchoolFeedPage from "./pages/SchoolFeedPage";
 import SettingsPage from "./pages/Settings/SettingsPage";
 import FollowingFeedPage from "./pages/FollowingFeedPage";
+import SettingsProfilePage from "./pages/Settings/SettingsProfilePage";
+import SettingsSecurityPage from "./pages/Settings/SettingsSecurityPage";
 
 function App() {
   return (
@@ -40,8 +42,13 @@ function App() {
         
         <Route path="reset-password" element={<ResetPasswordPage />} />
         <Route path="/school/:id?" element={<SchoolFeedPage />} />
-        <Route path="*" element={<NotFoundPage />} />
+
+
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/settings/profile" element={<SettingsProfilePage />} />
+        <Route path="/settings/security" element={<SettingsSecurityPage />} />
+
+        <Route path="*" element={<NotFoundPage />} />
         
       </Routes>
     </BrowserRouter>
