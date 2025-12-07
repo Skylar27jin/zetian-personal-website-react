@@ -23,6 +23,7 @@ import {
   resetUsername,
   updateSchool,
   updateDescription,
+  getUserProfile,
 } from "../../api/userApi";
 
 import Cropper, { Area } from "react-easy-crop";
@@ -288,13 +289,11 @@ export default function SettingsPage() {
         throw new Error(resp.errorMessage || "Upload background failed.");
       }
 
-      // 更新本地 profile
-      if (profile) {
-        const nextProfile = {
-          ...profile,
-          backgroundUrl: resp.background,
-        };
-        setProfile(nextProfile as any);
+      if (userId) {
+        const fresh = await getUserProfile(userId);
+        if (fresh.isSuccessful) {
+          setProfile(fresh.user as any);
+        }
       }
 
       setBgMsg("Background updated.");
