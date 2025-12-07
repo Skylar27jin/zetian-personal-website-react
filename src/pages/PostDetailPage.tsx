@@ -44,6 +44,7 @@ import ScrollablePanel from "../components/ScrollPanel";
 import ReplyPreview from "../components/ReplyPreview";
 import PostReactionButtons from "../components/PostReactionButtons";
 import LoginRequiredModal from "../components/LoginRequiredModal";
+import { PostUpdater, usePostReactions } from "../hooks/usePostReactions";
 
 
 const ICON_SIZE = 28;
@@ -76,6 +77,14 @@ export default function PostDetailPage() {
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
+
+  const postUrl =
+  typeof window !== "undefined"
+    ? `${window.location.origin}/post/${postId}`
+    : `/post/${postId}`;
 
   // ========= reply_to 原帖信息 =========
   interface ParentMeta {
@@ -278,6 +287,7 @@ export default function PostDetailPage() {
     };
   }, [showDeleteModal]);
 
+
   // ====================
   // like / unlike / fav / unfav
   // ====================
@@ -290,95 +300,38 @@ export default function PostDetailPage() {
     return true;
   };
 
-  const handleLike = async (pid: number) => {
-    if (!ensureLogin() || !post || post.id !== pid) return;
-    setActionError(null);
-    try {
-      const resp = await likePost(pid);
-      if (!resp.isSuccessful) {
-        setActionError(resp.errorMessage || "Failed to like.");
-        return;
-      }
-      setPost((prev) =>
-        prev
-          ? {
-              ...prev,
-              is_liked_by_user: true,
-              like_count: prev.like_count + 1,
-            }
-          : prev
-      );
-    } catch (e: any) {
-      setActionError(e?.message || "Network error while liking.");
+  const updatePostLocal: PostUpdater = (pid, patch) => {
+    setPost((prev) => (prev && prev.id === pid ? patch(prev) : prev));
+  };
+
+  const { handleLike, handleUnlike, handleFav, handleUnfav } =
+    usePostReactions(updatePostLocal, {
+      ensureLogin,
+      setActionError,
+    });
+
+  // ====================
+  // Comment / Share on detail
+  // ====================
+  const handleCommentJump = () => {
+    if (typeof window === "undefined") return;
+    const el = document.getElementById("post-comments-section");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
-  const handleUnlike = async (pid: number) => {
-    if (!ensureLogin() || !post || post.id !== pid) return;
-    setActionError(null);
-    try {
-      const resp = await unlikePost(pid);
-      if (!resp.isSuccessful) {
-        setActionError(resp.errorMessage || "Failed to unlike.");
-        return;
-      }
-      setPost((prev) =>
-        prev
-          ? {
-              ...prev,
-              is_liked_by_user: false,
-              like_count: Math.max(prev.like_count - 1, 0),
-            }
-          : prev
-      );
-    } catch (e: any) {
-      setActionError(e?.message || "Network error while unliking.");
-    }
+  const handleSharePost = () => {
+    setShowShareModal(true);
   };
 
-  const handleFav = async (pid: number) => {
-    if (!ensureLogin() || !post || post.id !== pid) return;
-    setActionError(null);
+  const handleCopyPostLink = async () => {
     try {
-      const resp = await favPost(pid);
-      if (!resp.isSuccessful) {
-        setActionError(resp.errorMessage || "Failed to favorite.");
-        return;
-      }
-      setPost((prev) =>
-        prev
-          ? {
-              ...prev,
-              is_fav_by_user: true,
-              fav_count: prev.fav_count + 1,
-            }
-          : prev
-      );
-    } catch (e: any) {
-      setActionError(e?.message || "Network error while favoriting.");
-    }
-  };
-
-  const handleUnfav = async (pid: number) => {
-    if (!ensureLogin() || !post || post.id !== pid) return;
-    setActionError(null);
-    try {
-      const resp = await unfavPost(pid);
-      if (!resp.isSuccessful) {
-        setActionError(resp.errorMessage || "Failed to unfavorite.");
-        return;
-      }
-      setPost((prev) =>
-        prev
-          ? {
-              ...prev,
-              is_fav_by_user: false,
-              fav_count: Math.max(prev.fav_count - 1, 0),
-            }
-          : prev
-      );
-    } catch (e: any) {
-      setActionError(e?.message || "Network error while unfavoriting.");
+      await navigator.clipboard.writeText(postUrl);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 1500);
+    } catch (e) {
+      console.error("copy failed", e);
     }
   };
 
@@ -713,33 +666,35 @@ export default function PostDetailPage() {
                 <br/>
 
                 <div className="d-flex align-items-center text-muted small">
-                  {/* 左侧统计 */}
+                  {/* 左侧统计：只显示浏览量 */}
                   <div>
-                    💬 {post.comment_count} · 🔁 {post.share_count} · 👁{" "}
-                    {post.view_count}
+                    view: {post.view_count}
                   </div>
-                  
-                  {/* 右侧按钮组 */}
-                  <div className="d-inline-flex gap-2 ms-auto align-items-center">
-                    <PostReactionButtons
-                      post={post}
-                      viewerId={viewerId}
-                      onLike={handleLike}
-                      onUnlike={handleUnlike}
-                      onFav={handleFav}
-                      onUnfav={handleUnfav}
-                      iconSize={ICON_SIZE}
-                      onRequireLogin={() => setShowLoginRequired(true)}
-                      // 详情页不是点击整卡片，所以可以关闭 stopPropagation
-                      stopPropagation={false}
-                    />
 
+                  {/* 右侧按钮组：左边三点，下方反应按钮整体在最右侧 */}
+                  <div className="d-flex align-items-center gap-2 ms-auto">
                     <PostActionsDropdown
                       onEdit={isOwner ? openEditModal : undefined}
                       onDelete={isOwner ? () => setShowDeleteModal(true) : undefined}
                       onReport={!isOwner ? () => setShowReportModal(true) : undefined}
                       onReply={viewerId ? handleReply : undefined}
                       deleting={isOwner ? deleting : false}
+                    />
+
+                    <PostReactionButtons
+                    post={post}
+                    viewerId={viewerId}
+                    onLike={handleLike}
+                    onUnlike={handleUnlike}
+                    onFav={handleFav}
+                    onUnfav={handleUnfav}
+                    iconSize={ICON_SIZE}
+                    onRequireLogin={() => setShowLoginRequired(true)}
+                    stopPropagation={false}
+                    showComment
+                    showShare
+                    onCommentClick={handleCommentJump}      // ✅ 只滚动到评论区域
+                    onShareClick={() => handleSharePost()}  // ✅ 打开分享 Modal
                     />
                   </div>
                 </div>
@@ -760,6 +715,7 @@ export default function PostDetailPage() {
 
               {/* 右侧：评论区域占位 */}
               <aside
+                id="post-comments-section"
                 className="flex-shrink-0"
                 style={{ width: "100%", maxWidth: "360px" }}
               >
@@ -910,6 +866,34 @@ export default function PostDetailPage() {
         show={showLoginRequired}
         onHide={() => setShowLoginRequired(false)}
       />
+      {/* Share Post Modal */}
+      <Modal
+        show={showShareModal}
+        onHide={() => setShowShareModal(false)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Share this post</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p className="small text-muted mb-1">Post link</p>
+          <div className="d-flex align-items-center gap-2">
+            <Form.Control type="text" value={postUrl} readOnly />
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              onClick={handleCopyPostLink}
+            >
+              Copy
+            </Button>
+          </div>
+          {shareCopied && (
+            <div className="small text-success mt-2">
+              Copied to clipboard.
+            </div>
+          )}
+        </Modal.Body>
+      </Modal>
     </div>
   );
 }

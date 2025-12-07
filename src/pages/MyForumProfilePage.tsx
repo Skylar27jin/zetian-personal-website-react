@@ -37,6 +37,7 @@ import UserListModal from "../components/UserListModal";
 import PostSourceTabs, {
   PostSourceKey,
 } from "../components/PostSourceTabs";
+import { PostUpdater, usePostReactions } from "../hooks/usePostReactions";
 
 // --------------------- 通用页面壳子 ---------------------
 function PageShell({ children }: { children: React.ReactNode }) {
@@ -165,101 +166,26 @@ export default function MyForumProfilePage() {
     }
   }, [authLoading, userId, authError, navigate]);
 
-  // ======= 统一点赞 / 收藏操作（所有 tab 同步） =======
+  // ======= 统一点赞 / 收藏（所有 tab 同步 + 乐观更新） =======
   const applyUpdateToAllSources = (updater: (p: Post) => Post) => {
     personal.setPosts((prev) => prev.map(updater));
     liked.setPosts((prev) => prev.map(updater));
     faved.setPosts((prev) => prev.map(updater));
   };
 
-  const handleLikeGlobal = async (postId: number) => {
-    setActionError(null);
-    try {
-      const resp = await likePost(postId);
-      if (!resp.isSuccessful) {
-        setActionError(resp.errorMessage || "Failed to like post.");
-        return;
-      }
-
-      applyUpdateToAllSources((p) =>
-        p.id === postId
-          ? {
-              ...p,
-              is_liked_by_user: true,
-              like_count: p.is_liked_by_user ? p.like_count : p.like_count + 1,
-            }
-          : p
-      );
-    } catch (e: any) {
-      setActionError(e?.message || "Network error while liking.");
-    }
+  const updatePostGlobal: PostUpdater = (postId, patch) => {
+    applyUpdateToAllSources((p) => (p.id === postId ? patch(p) : p));
   };
 
-  const handleUnlikeGlobal = async (postId: number) => {
-    setActionError(null);
-    try {
-      const resp = await unlikePost(postId);
-      if (!resp.isSuccessful) {
-        setActionError(resp.errorMessage || "Failed to unlike post.");
-        return;
-      }
-      applyUpdateToAllSources((p) =>
-        p.id === postId
-          ? {
-              ...p,
-              is_liked_by_user: false,
-              like_count: p.is_liked_by_user ? p.like_count - 1 : p.like_count,
-            }
-          : p
-      );
-    } catch (e: any) {
-      setActionError(e?.message || "Network error while unliking.");
-    }
-  };
-
-  const handleFavGlobal = async (postId: number) => {
-    setActionError(null);
-    try {
-      const resp = await favPost(postId);
-      if (!resp.isSuccessful) {
-        setActionError(resp.errorMessage || "Failed to favorite post.");
-        return;
-      }
-      applyUpdateToAllSources((p) =>
-        p.id === postId
-          ? {
-              ...p,
-              is_fav_by_user: true,
-              fav_count: p.is_fav_by_user ? p.fav_count : p.fav_count + 1,
-            }
-          : p
-      );
-    } catch (e: any) {
-      setActionError(e?.message || "Network error while favoriting.");
-    }
-  };
-
-  const handleUnfavGlobal = async (postId: number) => {
-    setActionError(null);
-    try {
-      const resp = await unfavPost(postId);
-      if (!resp.isSuccessful) {
-        setActionError(resp.errorMessage || "Failed to unfavorite post.");
-        return;
-      }
-      applyUpdateToAllSources((p) =>
-        p.id === postId
-          ? {
-              ...p,
-              is_fav_by_user: false,
-              fav_count: p.is_fav_by_user ? p.fav_count - 1 : p.fav_count,
-            }
-          : p
-      );
-    } catch (e: any) {
-      setActionError(e?.message || "Network error while unfavoriting.");
-    }
-  };
+  const {
+    handleLike: handleLikeGlobal,
+    handleUnlike: handleUnlikeGlobal,
+    handleFav: handleFavGlobal,
+    handleUnfav: handleUnfavGlobal,
+  } = usePostReactions(updatePostGlobal, {
+    setActionError,
+    // 这里不需要 ensureLogin，因为整个页面本身已经要求登录
+  });
 
   // ======= 条件 return =======
 

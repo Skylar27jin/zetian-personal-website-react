@@ -24,6 +24,7 @@ import {
 import { getAllSchools } from "../api/schoolApi";
 import type { School } from "../types/school";
 import { formatTimeAgo } from "../pkg/TimeFormatter";
+import { PostUpdater, usePostReactions } from "../hooks/usePostReactions";
 
 function PageShell({ children }: { children: React.ReactNode }) {
   return (
@@ -71,97 +72,12 @@ export default function SchoolFeedPage() {
     return `School #${schoolId}`;
   }, [posts, schoolId]);
 
-  // like / unlike / fav / unfav（本页内部维护 posts 状态）
-  const updatePostLocal = (
-    postId: number,
-    patch: (p: Post) => Post
-  ): void => {
+    const updatePostLocal: PostUpdater = (postId, patch) => {
     setPosts((prev) => prev.map((p) => (p.id === postId ? patch(p) : p)));
   };
 
-  const handleLike = async (postId: number) => {
-    updatePostLocal(postId, (p) =>
-      p.is_liked_by_user
-        ? p
-        : {
-            ...p,
-            is_liked_by_user: true,
-            like_count: (p.like_count ?? 0) + 1,
-          }
-    );
-    try {
-      await likePost(postId);
-    } catch {
-      updatePostLocal(postId, (p) => ({
-        ...p,
-        is_liked_by_user: false,
-        like_count: Math.max(0, (p.like_count ?? 1) - 1),
-      }));
-    }
-  };
-
-  const handleUnlike = async (postId: number) => {
-    updatePostLocal(postId, (p) =>
-      !p.is_liked_by_user
-        ? p
-        : {
-            ...p,
-            is_liked_by_user: false,
-            like_count: Math.max(0, (p.like_count ?? 1) - 1),
-          }
-    );
-    try {
-      await unlikePost(postId);
-    } catch {
-      updatePostLocal(postId, (p) => ({
-        ...p,
-        is_liked_by_user: true,
-        like_count: (p.like_count ?? 0) + 1,
-      }));
-    }
-  };
-
-  const handleFav = async (postId: number) => {
-    updatePostLocal(postId, (p) =>
-      p.is_fav_by_user
-        ? p
-        : {
-            ...p,
-            is_fav_by_user: true,
-            fav_count: (p.fav_count ?? 0) + 1,
-          }
-    );
-    try {
-      await favPost(postId);
-    } catch {
-      updatePostLocal(postId, (p) => ({
-        ...p,
-        is_fav_by_user: false,
-        fav_count: Math.max(0, (p.fav_count ?? 1) - 1),
-      }));
-    }
-  };
-
-  const handleUnfav = async (postId: number) => {
-    updatePostLocal(postId, (p) =>
-      !p.is_fav_by_user
-        ? p
-        : {
-            ...p,
-            is_fav_by_user: false,
-            fav_count: Math.max(0, (p.fav_count ?? 1) - 1),
-          }
-    );
-    try {
-      await unfavPost(postId);
-    } catch {
-      updatePostLocal(postId, (p) => ({
-        ...p,
-        is_fav_by_user: true,
-        fav_count: (p.fav_count ?? 0) + 1,
-      }));
-    }
-  };
+  const { handleLike, handleUnlike, handleFav, handleUnfav } =
+    usePostReactions(updatePostLocal);
 
   const handleReportPost = (post: Post) => {
     alert(`Report feature coming soon for post #${post.id}`);
