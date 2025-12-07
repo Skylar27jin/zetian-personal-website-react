@@ -272,18 +272,6 @@ export default function UserProfilePage() {
 
         {profile && (
           <>
-            {/* 背景图区域 */}
-            {profile.backgroundUrl && (
-              <div
-                className="rounded mb-3"
-                style={{
-                  height: 160,
-                  backgroundImage: `url(${profile.backgroundUrl})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                }}
-              />
-            )}
 
             <div className="mb-2">
               <UserProfileHeader

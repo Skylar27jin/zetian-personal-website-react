@@ -83,141 +83,149 @@ const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
 
   const hasBackground = !!localProfile.backgroundUrl;
 
-  // ========== 有背景图：悬浮在背景上 ==========
+  // ========== 有背景图：banner 只放头像 + 名字 ==========
   if (hasBackground) {
     return (
-      <div className="user-profile-header-banner mb-3">
-        <div
-          className="user-profile-header-bg"
-          style={{ backgroundImage: `url(${localProfile.backgroundUrl})` }}
-        />
-        <div className="user-profile-header-overlay" />
+      <div className="mb-3">
+        {/* 顶部背景 banner */}
+        <div className="user-profile-header-banner">
+          <div
+            className="user-profile-header-bg"
+            style={{ backgroundImage: `url(${localProfile.backgroundUrl})` }}
+          />
+          <div className="user-profile-header-overlay" />
 
-        <div className="user-profile-header-content">
-          {/* Left: avatar + text */}
-          <div className="user-profile-header-left">
-            <div className="user-profile-avatar-wrap">
-              {localProfile.avatarUrl ? (
-                <img
-                  src={localProfile.avatarUrl}
-                  alt={localProfile.userName}
-                  className="user-profile-avatar-img"
-                />
-              ) : (
-                <img
-                  src="../gopher_front.png"
-                  className="user-profile-avatar-img"
-                  alt="avatar"
-                />
-              )}
-            </div>
-
-            <div className="user-profile-text-main">
-              {/* name + badge */}
-              <div className="user-profile-name-row">
-                <span className="name">{localProfile.userName}</span>
-                {!localProfile.isMe && localProfile.followedYou && (
-                  <span className="badge bg-light text-dark border">
-                    Follows you
-                  </span>
+          <div className="user-profile-header-content">
+            {/* 左侧：头像 + 名字 + Follows you */}
+            <div className="user-profile-header-left">
+              <div className="user-profile-avatar-wrap">
+                {localProfile.avatarUrl ? (
+                  <img
+                    src={localProfile.avatarUrl}
+                    alt={localProfile.userName}
+                    className="user-profile-avatar-img"
+                  />
+                ) : (
+                  <img
+                    src="../gopher_front.png"
+                    className="user-profile-avatar-img"
+                    alt="avatar"
+                  />
                 )}
               </div>
 
-              {/* stats */}
-              <div className="user-profile-stats-row">
-                <div
-                  className="user-profile-stat-block"
-                  role={onFollowersClick ? "button" : undefined}
-                  onClick={onFollowersClick}
-                  style={{
-                    cursor: onFollowersClick ? "pointer" : "default",
-                    userSelect: "none",
-                  }}
-                >
-                  <span className="value">
-                    {localProfile.followersCount}
-                  </span>
-                  <span className="label">followers</span>
-                </div>
-
-                <div
-                  className="user-profile-stat-block"
-                  role={onFollowingClick ? "button" : undefined}
-                  onClick={onFollowingClick}
-                  style={{
-                    cursor: onFollowingClick ? "pointer" : "default",
-                    userSelect: "none",
-                  }}
-                >
-                  <span className="value">
-                    {localProfile.followingCount}
-                  </span>
-                  <span className="label">following</span>
-                </div>
-
-                <div className="user-profile-stat-block">
-                  <span className="value">
-                    {localProfile.postLikeReceivedCount}
-                  </span>
-                  <span className="label">likes got</span>
+              <div className="user-profile-text-main">
+                <div className="user-profile-name-row">
+                  <span className="name">{localProfile.userName}</span>
+                  {!localProfile.isMe && localProfile.followedYou && (
+                    <span className="badge bg-light text-dark border">
+                      Follows you
+                    </span>
+                  )}
                 </div>
               </div>
+            </div>
 
-              {/* school + description */}
-              {(localProfile.school || localProfile.description) && (
-                <div className="user-profile-meta">
-                  {localProfile.school && (
-                    <div>{localProfile.school}</div>
-                  )}
-                  {localProfile.description && (
-                    <div>{localProfile.description}</div>
-                  )}
-                </div>
-              )}
+            {/* 右侧：follow / unfollow */}
+            {showFollowButton && (
+              <>
+                {localProfile.isFollowing ? (
+                  <Dropdown align="end">
+                    <Dropdown.Toggle
+                      variant="outline-light"
+                      size="sm"
+                      id="profile-followed-dropdown"
+                      className="py-0 px-3 d-inline-flex align-items-center"
+                      disabled={loading}
+                    >
+                      <span>{followButtonLabel}</span>
+                    </Dropdown.Toggle>
+                    <Dropdown.Menu>
+                      <Dropdown.Item
+                        onClick={handleUnfollow}
+                        disabled={loading}
+                      >
+                        Unfollow
+                      </Dropdown.Item>
+                    </Dropdown.Menu>
+                  </Dropdown>
+                ) : (
+                  <Button
+                    variant="light"
+                    size="sm"
+                    disabled={loading}
+                    onClick={handleFollow}
+                  >
+                    {followButtonLabel}
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* banner 下方：统计 + 学校 + 简介 */}
+        <div className="mt-2 user-profile-header-info">
+          <div className="d-flex text-muted" style={{ gap: "16px" }}>
+            <div
+              className="d-flex flex-column align-items-start"
+              role={onFollowersClick ? "button" : undefined}
+              onClick={onFollowersClick}
+              style={{
+                cursor: onFollowersClick ? "pointer" : "default",
+                userSelect: "none",
+              }}
+            >
+              <div className="fw-bold" style={{ fontSize: "1.1rem" }}>
+                {localProfile.followersCount}
+              </div>
+              <div className="small">followers</div>
+            </div>
+
+            <div
+              className="d-flex flex-column align-items-start"
+              role={onFollowingClick ? "button" : undefined}
+              onClick={onFollowingClick}
+              style={{
+                cursor: onFollowingClick ? "pointer" : "default",
+                userSelect: "none",
+              }}
+            >
+              <div className="fw-bold" style={{ fontSize: "1.1rem" }}>
+                {localProfile.followingCount}
+              </div>
+              <div className="small">following</div>
+            </div>
+
+            <div className="d-flex flex-column align-items-start">
+              <div className="fw-bold" style={{ fontSize: "1.1rem" }}>
+                {localProfile.postLikeReceivedCount}
+              </div>
+              <div className="small">likes got</div>
             </div>
           </div>
 
-          {/* Right: follow button / dropdown */}
-          {showFollowButton && (
-            <>
-              {localProfile.isFollowing ? (
-                <Dropdown align="end">
-                  <Dropdown.Toggle
-                    variant="outline-light"
-                    size="sm"
-                    id="profile-followed-dropdown"
-                    className="py-0 px-3 d-inline-flex align-items-center"
-                    disabled={loading}
-                  >
-                    <span>{followButtonLabel}</span>
-                  </Dropdown.Toggle>
-                  <Dropdown.Menu>
-                    <Dropdown.Item
-                      onClick={handleUnfollow}
-                      disabled={loading}
-                    >
-                      Unfollow
-                    </Dropdown.Item>
-                  </Dropdown.Menu>
-                </Dropdown>
-              ) : (
-                <Button
-                  variant="light"
-                  size="sm"
-                  disabled={loading}
-                  onClick={handleFollow}
-                >
-                  {followButtonLabel}
-                </Button>
+          {(localProfile.school || localProfile.description) && (
+            <div className="mt-2">
+              {localProfile.school && (
+                <div className="small text-muted">{localProfile.school}</div>
               )}
-            </>
+              {localProfile.description && (
+                <div
+                  className="small text-muted"
+                  style={{ maxWidth: 420, whiteSpace: "pre-wrap" }}
+                >
+                  {localProfile.description}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
     );
   }
 
-  // ========== 无背景图：使用原来的浅色布局 ==========
+  // ========== 无背景图：原来的浅色布局 ==========
   return (
     <div className="user-profile-header-plain mb-3">
       {/* Left: avatar + basic info */}

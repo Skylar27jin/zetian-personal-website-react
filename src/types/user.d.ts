@@ -13,7 +13,6 @@ export interface UserProfile {
   followedYou: boolean;
   isMe: boolean;
 
-  // 新增字段，对应 thrift UserProfile 10~14
   postCount: number;
   postFavCount: number;
   backgroundUrl: string;

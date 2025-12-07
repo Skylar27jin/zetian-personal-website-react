@@ -452,18 +452,6 @@ export default function MyForumProfilePage() {
 
       {profile && (
         <div className="mb-3">
-          {/* 背景图区域 */}
-          {profile.backgroundUrl && (
-            <div
-              className="rounded mb-3"
-              style={{
-                height: 160,
-                backgroundImage: `url(${profile.backgroundUrl})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }}
-            />
-          )}
 
           <UserProfileHeader
             profile={profile}
