@@ -1,0 +1,158 @@
+.user-profile-header-banner {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  min-height: 120px;
+}
+
+/* 背景图层 */
+.user-profile-header-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  transform: scale(1.02); /* 轻微放大，防止边缘留白 */
+}
+
+/* 渐变遮罩：左边更暗，右边更亮一点 */
+.user-profile-header-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0.6),
+    rgba(0, 0, 0, 0.35),
+    rgba(0, 0, 0, 0.05)
+  );
+}
+
+/* 内容层：头像 + 文本 + 按钮 */
+.user-profile-header-content {
+  position: relative;
+  z-index: 1;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #fff;
+}
+
+/* 左侧：头像 + 文本 */
+.user-profile-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 悬浮头像 */
+.user-profile-avatar-wrap {
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  background: rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.user-profile-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 文本部分 */
+.user-profile-text-main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.user-profile-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.user-profile-name-row .name {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.user-profile-name-row .badge {
+  font-size: 0.7rem;
+}
+
+/* stats 行 */
+.user-profile-stats-row {
+  display: flex;
+  gap: 14px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.user-profile-stat-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.user-profile-stat-block .value {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.user-profile-stat-block .label {
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
+
+/* 学校 + 简介 */
+.user-profile-meta {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 420px;
+  white-space: pre-wrap;
+}
+
+/* 手机端：整块背景，头像文字直接悬浮在上面 */
+@media (max-width: 767.98px) {
+  .user-profile-header-banner {
+    min-height: 140px;
+  }
+  .user-profile-header-content {
+    align-items: flex-end;
+  }
+}
+
+/* 桌面端：背景偏右 + 渐变向左 */
+@media (min-width: 768px) {
+  .user-profile-header-banner {
+    min-height: 150px;
+  }
+  .user-profile-header-bg {
+    background-position: center right;
+  }
+  .user-profile-header-overlay {
+    background: linear-gradient(
+      to left,
+      rgba(0, 0, 0, 0.65),
+      rgba(0, 0, 0, 0.4),
+      rgba(0, 0, 0, 0.1),
+      rgba(0, 0, 0, 0.0)
+    );
+  }
+}
+
+/* 没有背景图时，走原来的浅色卡片样式 */
+.user-profile-header-plain {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
