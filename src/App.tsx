@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import GetMyFavWebPage from "./pages/MyFavWeb";
-import Index from "./pages/Index";
+import WhoIsSkyPage from "./pages/WhoIsSkyPage";
 import GetNumOpPage from "./pages/NumOp";
 import LoginPage from "./pages/Login";
 import SignupPage from "./pages/Signup";
@@ -21,11 +21,19 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+
+
         //test route
         <Route path="/numop" element={<GetNumOpPage />} />
-        //my personal introduction
-        <Route path="" element={<Index />} />
-        //person's favorite website
+
+
+        //forum main feed
+        <Route path="/" element={<SchoolFeedPage />} />
+
+        //sky's introduction
+        <Route path="/whoIsSky" element={<WhoIsSkyPage />} />
+
+        //sky's favorite website
         <Route path="/weblist" element={<GetMyFavWebPage />} />
 
         <Route path="/login" element={<LoginPage />} />

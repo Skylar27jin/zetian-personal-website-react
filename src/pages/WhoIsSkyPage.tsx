@@ -1,8 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import ExperienceGroup from "../components/ExperienceGroup";
+import ExperienceGroup from "../components/zetian-introduction/ExperienceGroup";
 import Education from "../components/zetian-introduction/EducationGroup";
 
-export default function Index() {
+export default function WhoIsSkyPage() {
   const navigate = useNavigate();
 
   const handleGoToWebList = () => {
