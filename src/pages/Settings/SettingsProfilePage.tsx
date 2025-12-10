@@ -26,6 +26,8 @@ import {
 
 import Cropper, { Area } from "react-easy-crop";
 import { getCroppedImg } from "../../pkg/cropImage";
+import type { School } from "../../types/school";
+import { getAllSchools } from "../../api/schoolApi";
 
 export default function SettingsProfilePage() {
   const {
@@ -50,18 +52,87 @@ export default function SettingsProfilePage() {
 
   // Profile 编辑表单
   const [displayName, setDisplayName] = useState("");
-  const [school, setSchool] = useState("");
+
+  // 选中的标准学校 ID（0 表示没有绑定标准学校）
+  const [schoolId, setSchoolId] = useState<number>(0);
+
+  // 学校选择模式：existing = 从列表选；custom = 自定义输入
+  const [schoolMode, setSchoolMode] = useState<"existing" | "custom">(
+    "existing"
+  );
+
+  // 搜索框里的关键词（用于筛选标准学校）
+  const [schoolSearch, setSchoolSearch] = useState("");
+
+  // 自定义学校名称（如果不能在列表里找到）
+  const [customSchool, setCustomSchool] = useState("");
+
+  // 学校列表 & 加载状态
+  const [schools, setSchools] = useState<School[]>([]);
+  const [schoolsLoading, setSchoolsLoading] = useState(false);
+  const [schoolError, setSchoolError] = useState<string | null>(null);
+
   const [description, setDescription] = useState("");
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMsg, setProfileMsg] = useState<string | null>(null);
 
+  // 根据 profile 初始化表单
   useEffect(() => {
     if (profile) {
       setDisplayName(profile.userName || "");
-      setSchool(profile.school || "");
       setDescription(profile.description || "");
+
+      const pid = profile.schoolId ?? 0;
+      setSchoolId(pid);
+
+      if (pid > 0) {
+        // 有标准学校：默认使用“已有学校”模式
+        setSchoolMode("existing");
+        setSchoolSearch(profile.school || "");
+        setCustomSchool("");
+      } else {
+        // 没有标准学校：默认使用“自定义学校”模式
+        setSchoolMode("custom");
+        setSchoolSearch("");
+        setCustomSchool(profile.school || "");
+      }
     }
   }, [profile]);
+
+  // 加载学校列表
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSchools() {
+      try {
+        setSchoolsLoading(true);
+        setSchoolError(null);
+
+        const resp = await getAllSchools();
+        if (cancelled) return;
+
+        if (!resp.isSuccessful) {
+          setSchoolError(resp.errorMessage || "Failed to load schools");
+          return;
+        }
+
+        setSchools(resp.Schools || []);
+      } catch (e: any) {
+        if (!cancelled) {
+          setSchoolError(e?.message || "Network error while loading schools");
+        }
+      } finally {
+        if (!cancelled) {
+          setSchoolsLoading(false);
+        }
+      }
+    }
+
+    loadSchools();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // ====== Avatar 裁剪上传 ======
   const [rawImageUrl, setRawImageUrl] = useState<string>("");
@@ -84,6 +155,15 @@ export default function SettingsProfilePage() {
   const [bgUploading, setBgUploading] = useState(false);
   const [bgMsg, setBgMsg] = useState<string | null>(null);
 
+  const filteredSchools = schools.filter((s) => {
+    if (!schoolSearch.trim()) return true;
+    const q = schoolSearch.trim().toLowerCase();
+    return (
+      s.name.toLowerCase().includes(q) ||
+      (s.short_name || "").toLowerCase().includes(q) ||
+      (s.aliases || []).some((a) => a.toLowerCase().includes(q))
+    );
+  });
 
   // 选择头像文件
   function handleAvatarChange(e: ChangeEvent<HTMLInputElement>) {
@@ -164,11 +244,12 @@ export default function SettingsProfilePage() {
 
     try {
       const trimmedName = displayName.trim();
-      const trimmedSchool = school.trim();
       const trimmedDesc = description.trim();
+      const trimmedCustomSchool = customSchool.trim();
 
       let anyChange = false;
 
+      // 1) Username
       if (trimmedName && trimmedName !== profile.userName) {
         const resp = await resetUsername({ user_name: trimmedName });
         if (!resp.isSuccessful) {
@@ -177,14 +258,41 @@ export default function SettingsProfilePage() {
         anyChange = true;
       }
 
-      if (trimmedSchool !== (profile.school || "")) {
-        const resp = await updateSchool({ school: trimmedSchool });
+      // 2) School（标准学校 + 自定义）
+      let nextSchoolToSend = profile.school || "";
+      let nextSchoolIdToSend = profile.schoolId ?? 0;
+
+      if (schoolMode === "custom") {
+        // 自定义模式：school_id = 0，名称用 customSchool
+        nextSchoolToSend = trimmedCustomSchool;
+        nextSchoolIdToSend = 0;
+      } else {
+        // existing 模式：如果选中标准学校，就用标准学校；否则清空
+        if (schoolId > 0) {
+          const selected = schools.find((s) => s.id === schoolId);
+          nextSchoolToSend = selected?.name || profile.school || "";
+          nextSchoolIdToSend = schoolId;
+        } else {
+          nextSchoolToSend = "";
+          nextSchoolIdToSend = 0;
+        }
+      }
+
+      if (
+        nextSchoolToSend !== (profile.school || "") ||
+        nextSchoolIdToSend !== (profile.schoolId ?? 0)
+      ) {
+        const resp = await updateSchool({
+          school: nextSchoolToSend,
+          school_id: nextSchoolIdToSend,
+        });
         if (!resp.isSuccessful) {
           throw new Error(resp.errorMessage || "Failed to update school.");
         }
         anyChange = true;
       }
 
+      // 3) Description
       if (trimmedDesc !== (profile.description || "")) {
         const resp = await updateDescription({ description: trimmedDesc });
         if (!resp.isSuccessful) {
@@ -199,8 +307,9 @@ export default function SettingsProfilePage() {
         const nextProfile = {
           ...profile,
           userName: trimmedName || profile.userName,
-          school: trimmedSchool,
+          school: nextSchoolToSend,
           description: trimmedDesc,
+          schoolId: nextSchoolIdToSend,
         };
         setProfile(nextProfile as any);
 
@@ -445,7 +554,7 @@ export default function SettingsProfilePage() {
                       className="rounded mb-3"
                       style={{
                         width: "100%",
-                        aspectRatio: "16 / 9", 
+                        aspectRatio: "16 / 9",
                         height: 180,
                         backgroundImage: `url(${profile.backgroundUrl})`,
                         backgroundSize: "cover",
@@ -567,29 +676,135 @@ export default function SettingsProfilePage() {
                       />
                     </Form.Group>
 
-                    <Form.Group className="mb-3" controlId="school">
+                    {/* School selector + 模式切换 */}
+                    <Form.Group className="mb-3" controlId="schoolSelector">
                       <Form.Label>School</Form.Label>
-                      <Form.Control
-                        type="text"
-                        value={school}
-                        onChange={(e) => setSchool(e.target.value)}
-                        placeholder="e.g. Boston University"
-                        disabled={profileLoading}
-                      />
+
+                      <div className="mb-2 d-flex gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={
+                            schoolMode === "existing" ? "primary" : "outline-primary"
+                          }
+                          onClick={() => setSchoolMode("existing")}
+                          disabled={profileLoading}
+                        >
+                          Choose from list[recommended]
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={
+                            schoolMode === "custom" ? "primary" : "outline-primary"
+                          }
+                          onClick={() => setSchoolMode("custom")}
+                          disabled={profileLoading}
+                        >
+                          Enter custom
+                        </Button>
+                      </div>
+
+                      {schoolMode === "existing" && (
+                        <>
+                          <Form.Control
+                            type="text"
+                            value={schoolSearch}
+                            onChange={(e) => {
+                              setSchoolSearch(e.target.value);
+                            }}
+                            placeholder="Type to search your school (e.g. BU, MIT)"
+                            disabled={profileLoading}
+                          />
+                          <div
+                            className="border rounded mt-2"
+                            style={{
+                              maxHeight: "180px",
+                              overflowY: "auto",
+                              background: "#ffffffff",
+                            }}
+                          >
+                            {schoolsLoading && (
+                              <div className="p-2 text-muted small">
+                                <Spinner animation="border" size="sm" />{" "}
+                                Loading schools...
+                              </div>
+                            )}
+
+                            {!schoolsLoading && schoolError && (
+                              <div className="p-2 text-danger small">
+                                {schoolError}
+                              </div>
+                            )}
+
+                            {!schoolsLoading &&
+                              !schoolError &&
+                              filteredSchools.length === 0 && (
+                                <div className="p-2 text-muted small">
+                                  No school matches your search.
+                                </div>
+                              )}
+
+                            {!schoolsLoading &&
+                              !schoolError &&
+                              filteredSchools.map((s) => {
+                                const selected = s.id === schoolId;
+                                return (
+                                  <button
+                                    key={s.id}
+                                    type="button"
+                                    className="w-100 text-start btn btn-sm btn-light"
+                                    style={
+                                      selected
+                                        ? {
+                                            backgroundColor: "#f3f3f3",
+                                            borderColor: "#e0e0e0",
+                                          }
+                                        : {}
+                                    }
+                                    onClick={() => {
+                                      setSchoolId(s.id);
+                                      setSchoolSearch(s.short_name || s.name);
+                                    }}
+                                  >
+                                    <strong>{s.short_name || s.name}</strong>{" "}
+                                    <span className="text-muted small">
+                                      · {s.name} · id={s.id}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                          </div>
+                          <Form.Text className="text-muted">
+                            Pick a school from the list above.
+                          </Form.Text>
+                        </>
+                      )}
+
+                      {schoolMode === "custom" && (
+                        <>
+                          <Form.Control
+                            type="text"
+                            value={customSchool}
+                            onChange={(e) => setCustomSchool(e.target.value)}
+                            placeholder="e.g. Some Unknown College"
+                            disabled={profileLoading}
+                          />
+                          <Form.Text className="text-muted">
+                            This custom name will be used when your school is not in
+                            the list above.
+                          </Form.Text>
+                        </>
+                      )}
                     </Form.Group>
 
-                    <Form.Group
-                      className="mb-3"
-                      controlId="description"
-                    >
+                    <Form.Group className="mb-3" controlId="description">
                       <Form.Label>Bio</Form.Label>
                       <Form.Control
                         as="textarea"
                         rows={3}
                         value={description}
-                        onChange={(e) =>
-                          setDescription(e.target.value)
-                        }
+                        onChange={(e) => setDescription(e.target.value)}
                         placeholder="Introduce yourself..."
                         disabled={profileLoading}
                       />

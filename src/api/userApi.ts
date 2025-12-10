@@ -263,23 +263,28 @@ export async function resetUsername(
 
 /**
  * Update school
- * POST /user/update-school
- * body: { "school": "Boston University" }
+ if school has an associated id, pass that:
+ { "school": "Boston University", "school_id": 1 }
+ else, if the id is unknown, pass empty string for school_id
+ { "school": "Some Unknown School", "school_id": 0 }
  */
 export async function updateSchool(
-  req: UpdateSchoolReq
+  body: UpdateSchoolReq
 ): Promise<UpdateSchoolResp> {
-  const response = await fetch(`${BASE_URL}/user/update-school`, {
+  const res = await fetch(`${BASE_URL}/user/update-school`, {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(req),
-    credentials: "include",
+    body: JSON.stringify(body),
   });
 
-  const resp = (await response.json()) as UpdateSchoolResp;
-  return resp;
+  if (!res.ok) {
+    throw new Error(`updateSchool failed with status ${res.status}`);
+  }
+
+  return (await res.json()) as UpdateSchoolResp;
 }
 
 /**

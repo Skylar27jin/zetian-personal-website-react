@@ -17,6 +17,7 @@ export interface UserProfile {
   postFavCount: number;
   backgroundUrl: string;
   school: string;
+  schoolId: number;
   description: string;
 }
 
@@ -159,6 +160,7 @@ export interface ResetUsernameResp {
  */
 export interface UpdateSchoolReq {
   school: string;
+  school_id: number;
 }
 
 export interface UpdateSchoolResp {
