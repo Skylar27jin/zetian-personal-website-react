@@ -44,7 +44,7 @@ function PageShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="bg-light min-vh-100 d-flex flex-column">
       <Navbar />
-      <main className="flex-grow-1 py-4">
+      <main className="flex-grow-1 pt-0 pb-4">
         <Container className="max-w-3xl">{children}</Container>
       </main>
     </div>
@@ -348,15 +348,7 @@ export default function MyForumProfilePage() {
   // ======= 正常渲染 =======
   return (
     <PageShell>
-      <MyForumHeader
-        authLoading={authLoading}
-        userId={userId}
-        username={username}
-        email={email}
-        showCreateButton={true}
-        onClickCreate={() => (window.location.href = "/post/create")}
-      />
-
+      <br/>
       {profile && (
         <div className="mb-3">
 

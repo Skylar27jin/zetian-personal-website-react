@@ -81,9 +81,9 @@ export default function SettingsPage() {
               </Card>
 
               {/* 1. Profile Settings 入口 */}
-              <Card className="mb-3">
-                <Card.Header>Profile</Card.Header>
-                <Card.Body>
+                <Card className="mb-3">
+                  <Card.Header>Profile</Card.Header>
+                  <Card.Body>
                   <p className="text-muted small mb-3">
                     Edit your avatar, profile background, display name, school,
                     and bio.

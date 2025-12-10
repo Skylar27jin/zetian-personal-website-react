@@ -175,11 +175,22 @@ export default function UserProfilePage() {
   return (
     <PageShell>
       <header className="mb-4">
-        <div className="d-flex align-items-center gap-2 mb-2">
+        <div className="d-flex align-items-center justify-content-between mb-2">
           <h4 className="fw-bold mb-0">
-            {isSelf && "Previewing Your Public Profile"}
+            {isSelf && "You are previewing your public profile"}
           </h4>
+
+          {isSelf && (
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              onClick={() => (window.location.href = "/me")}
+            >
+              Back to My Forum
+            </Button>
+          )}
         </div>
+
 
         {profile && (
           <>
@@ -190,10 +201,6 @@ export default function UserProfilePage() {
                 onChange={setProfile}
                 onFollowersClick={() => setShowFollowers(true)}
                 onFollowingClick={() => setShowFollowing(true)}
-                secondaryActionLabel={isSelf ? "Back to My Forum" : undefined}
-                onSecondaryActionClick={
-                  isSelf ? () => (window.location.href = "/me") : undefined
-                }
               />
               <UserListModal
                 show={showFollowers}

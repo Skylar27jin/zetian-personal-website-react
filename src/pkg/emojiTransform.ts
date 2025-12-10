@@ -24,6 +24,5 @@ export function plainToHtml(value: string): string {
     }
   );
 
-  // 换行 → <br>
   return withEmoji.replace(/\r?\n/g, "<br>");
 }
