@@ -1,45 +1,139 @@
-/* 输入区整体留白更多，让光标不贴边 */
+/* ===== Editor toolbar / emoji button (pill like screenshot) ===== */
+.editor-toolbar {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin-bottom: 8px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.editor-emoji-toggle {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(61, 57, 57, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+
+  color: #111;
+  font-weight: 600;
+  font-size: 16px;
+
+  cursor: pointer;
+  line-height: 1;
+
+  outline: none;
+  box-shadow: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.editor-emoji-toggle:active {
+  background: rgba(255, 1, 1, 0.06);
+}
+
+.editor-emoji-toggle:hover {
+  background: rgba(10, 132, 255, 0.14);
+  transform: translateY(-1px);
+}
+
+.editor-emoji-toggle:active {
+  transform: translateY(0);
+}
+
+.editor-emoji-toggle:focus,
+.editor-emoji-toggle:active:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.editor-emoji-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.editor-emoji-text {
+  line-height: 1;
+}
+
+
+/* ===== 输入框本体：无论是否 focus 都可见 ===== */
 .editor-editable {
-  padding: 12px 14px;     /* ↑ 原来是 8px 10px */
-  line-height: 1.7;       /* ↑ 行高更大，光标更“醒目” */
-  caret-color: #0a84ff;   /* 高对比度光标色（macOS 蓝） */
-  border: 1px solid #444;
-  border-radius: 6px;
+  position: relative;          /* 让 ::before placeholder 可以定位 */
+  padding: 12px 14px;
+  line-height: 1.7;
+  caret-color: #0a84ff;
+
+  background: #fff;            /* 永远有底色 */
+  color: #111;
+
+  border: 1px solid rgba(0, 0, 0, 0.18); /* 永远有边框 */
+  border-radius: 10px;
+
   outline: none;
   white-space: pre-wrap;
   word-break: break-word;
   direction: ltr;
   unicode-bidi: plaintext;
-  background: #fff;
-  color: #111;
-  min-height: 7.5em;      /* = 约 5 行空间 */
+
+  min-height: 7.5em;           /* 永远有高度 */
 }
 
-/* 聚焦时给一个轻微内阴影，便于定位输入区 */
+/* 聚焦时更明显一点（可选，但不会“消失”） */
 .editor-editable:focus {
-  box-shadow: 0 0 0 2px rgba(10,132,255,0.15) inset;
+  border-color: rgba(10, 132, 255, 0.45);
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.12);
 }
 
-/* emoji 与文字稍微拉开距离，避免光标“贴脸” */
+/* emoji */
 .emoji-inline {
   width: 20px;
   height: 20px;
   vertical-align: middle;
-  margin: 0 2px;          /* 新增：左右各 2px */
-}
-
-/* 选中文本的高亮更柔和，避免干扰光标视觉 */
-.editor-editable ::selection {
-  background: rgba(10,132,255,0.25);
-}
-
-/* placeholder 更淡一点，避免和真实文字抢视觉 */
-.editor-editable:empty:before {
-  content: attr(data-placeholder);
-  color: #7a7a7a;         /* 略深但仍然是占位样式 */
+  margin: 0 2px;
   pointer-events: none;
 }
 
+/* 选中文本高亮（保留你原来的） */
+.editor-editable ::selection {
+  background: rgba(10, 132, 255, 0.25);
+}
 
-.emoji-inline { pointer-events: none; }
+/* ===== placeholder：用 data-empty 控制（不依赖 :empty） ===== */
+.editor-editable[data-empty="true"]::before {
+  content: attr(data-placeholder);
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  color: #7a7a7a;
+  pointer-events: none;
 
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100% - 28px);
+}
+
+/* 默认隐藏 toolbar（不占空间/不可点） */
+.editor-wrapper .editor-toolbar {
+  opacity: 0;
+  max-height: 0;
+  margin-bottom: 0;
+  /* overflow: hidden; */
+  pointer-events: none;
+  transition: opacity 0.15s ease, max-height 0.15s ease, margin-bottom 0.15s ease;
+}
+
+/* 当输入框或按钮/Picker 在内部获得焦点时显示 */
+.editor-wrapper:focus-within .editor-toolbar {
+  opacity: 1;
+  max-height: 60px;  /* 足够容纳 40px 高的按钮 */
+  margin-bottom: 8px;
+  pointer-events: auto;
+}

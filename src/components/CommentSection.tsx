@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Editor from "./Editor";
 import RichContent from "./RichContent";
 import formatTime from "../pkg/TimeFormatter";
+import "./CommentSection.css";
 
 import {
   createComment,
@@ -14,6 +15,7 @@ import {
 
 import type { Comment, CommentThread } from "../types/comment";
 import { CommentOrder } from "../types/comment";
+import GopherLoader from "./GopherLoader";
 
 const MAX_COMMENT_LEN = 500;
 const THREAD_PAGE_SIZE = 20;
@@ -29,8 +31,8 @@ type RepliesState = {
 };
 
 type ReplyTarget = {
-  commentId: number;
-  rootId: number;
+  commentId: number; // parent_id
+  rootId: number;    // thread root id
   userId: number;
   userName: string;
 };
@@ -107,6 +109,8 @@ export default function CommentSection(props: {
 
   const [repliesMap, setRepliesMap] = useState<Record<number, RepliesState>>({});
 
+  const canPost = draft.trim().length > 0;
+
   const ensureLogin = (): boolean => {
     if (!canComment) {
       onRequireLogin();
@@ -128,24 +132,9 @@ export default function CommentSection(props: {
     };
   };
 
-  const getRootIdForComment = (commentId: number): number | null => {
-    for (const t of threads) {
-      const root = t.root;
-      if (!root?.id) continue;
-      if (root.id === commentId) return root.id;
-
-      const rootId = root.id;
-      const list = repliesMap[rootId]?.items ?? (t.replies_preview ?? []);
-      if (list.some((x) => x.id === commentId)) return rootId;
-    }
-    return null;
-  };
-
-  const beginReply = (c: Comment) => {
+  // 关键修复：beginReply 必须显式拿到 rootId（渲染时就有），不要扫 threads 反查
+  const beginReply = (c: Comment, rootId: number) => {
     if (!ensureLogin()) return;
-
-    const rootId = getRootIdForComment(c.id);
-    if (!rootId) return;
 
     setReplyTarget({
       commentId: c.id,
@@ -222,7 +211,10 @@ export default function CommentSection(props: {
         throw new Error(resp.errorMessage || "Create failed");
       }
 
-      const newThread: CommentThread = { root: resp.comment, replies_preview: [] };
+      const newThread: CommentThread = {
+        root: resp.comment,
+        replies_preview: [],
+      };
       setThreads((prev) => [newThread, ...prev]);
 
       setRepliesMap((prev) => ({
@@ -290,7 +282,10 @@ export default function CommentSection(props: {
     } catch (e: any) {
       setRepliesMap((prev) => ({
         ...prev,
-        [rootId]: { ...(prev[rootId] ?? emptyRepliesState()), error: e?.message || "Network error while replying" },
+        [rootId]: {
+          ...(prev[rootId] ?? emptyRepliesState()),
+          error: e?.message || "Network error while replying",
+        },
       }));
     }
   };
@@ -335,7 +330,11 @@ export default function CommentSection(props: {
     } catch (e: any) {
       setRepliesMap((prev) => ({
         ...prev,
-        [rootId]: { ...prev[rootId], loading: false, error: e?.message || "Network error" },
+        [rootId]: {
+          ...prev[rootId],
+          loading: false,
+          error: e?.message || "Network error",
+        },
       }));
     }
   };
@@ -406,30 +405,17 @@ export default function CommentSection(props: {
     const isMine = !!viewerId && viewerId === c.user_id;
 
     return (
-      <div className="d-flex align-items-center gap-3 mt-2">
-        <Button
-          size="sm"
-          variant="link"
-          className="p-0 text-decoration-none"
-          onClick={(e) => {
-            e.stopPropagation();
-            beginReply(c);
-          }}
-        >
-          Reply
-        </Button>
+      <div className="d-flex align-items-center comment-actions">
 
         {c.parent_id == null && (
-          <span className="text-muted small">{c.reply_count ?? 0} replies</span>
+          <span className="text-muted">{c.reply_count ?? 0} replies</span>
         )}
 
         <div className="ms-auto" onClick={(e) => e.stopPropagation()}>
           <Dropdown align="end">
             <Dropdown.Toggle as={KebabToggle} />
             <Dropdown.Menu>
-              <Dropdown.Item
-                onClick={() => alert("Report is not implemented yet.")}
-              >
+              <Dropdown.Item onClick={() => alert("Report is not implemented yet.")}>
                 Report
               </Dropdown.Item>
 
@@ -452,12 +438,12 @@ export default function CommentSection(props: {
     if (!replyTarget || replyTarget.commentId !== c.id) return null;
 
     return (
-      <div className="mt-2">
+      <div className="reply-composer">
         <Editor
           value={replyDraft}
           onChange={(v) => setReplyDraft(clampLen(v, MAX_COMMENT_LEN))}
           placeholder={`Reply to ${replyTarget.userName}...`}
-          minRows={2}
+          minRows={1}
         />
 
         <div className="d-flex gap-2 mt-2">
@@ -485,7 +471,7 @@ export default function CommentSection(props: {
   };
 
   return (
-    <div className="w-100">
+    <div className="w-100 comment-section">
       {showHeader && (
         <div className="d-flex align-items-center justify-content-between mb-2">
           <h5 className="fw-semibold mb-0">Comments</h5>
@@ -498,7 +484,7 @@ export default function CommentSection(props: {
         </Alert>
       )}
 
-      {/* 顶层评论输入：无外框 */}
+      {/* 顶层评论输入 */}
       <div className="mb-3">
         <Editor
           value={draft}
@@ -508,28 +494,30 @@ export default function CommentSection(props: {
         />
 
         <div className="d-flex justify-content-end mt-2">
-          <Button
-            size="sm"
-            variant="primary"
-            onClick={handlePostTop}
-            disabled={posting || draft.trim().length === 0}
-          >
-            {posting ? (
-              <>
-                <Spinner animation="border" size="sm" className="me-2" />
-                Posting…
-              </>
-            ) : (
-              "Post"
-            )}
-          </Button>
+          {canPost && (
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={handlePostTop}
+              disabled={posting}
+            >
+              {posting ? (
+                <>
+                  <Spinner animation="border" size="sm" className="me-2" />
+                  Posting…
+                </>
+              ) : (
+                "Post"
+              )}
+            </Button>
+          )}
         </div>
       </div>
 
       {/* loading */}
       {loadingThreads && threads.length === 0 && (
         <div className="text-muted small d-flex align-items-center gap-2">
-          <Spinner animation="border" size="sm" /> Loading…
+          <GopherLoader />
         </div>
       )}
 
@@ -538,7 +526,7 @@ export default function CommentSection(props: {
         <div className="text-muted small">No comments yet.</div>
       )}
 
-      {/* threads list：无边框，只用留白/hover */}
+      {/* threads list */}
       {threads.map((t) => {
         const root = t.root;
         const rootId = root.id;
@@ -552,53 +540,33 @@ export default function CommentSection(props: {
             : DEFAULT_AVATAR;
 
         return (
-          <div
-            key={rootId}
-            className="py-3"
-            style={{
-              borderRadius: 16,
-              paddingLeft: 6,
-              paddingRight: 6,
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as any).style.background = "rgba(0,0,0,0.02)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as any).style.background = "transparent";
-            }}
-          >
+          <div key={rootId} className="comment-item py-2">
             <div className="d-flex gap-2">
               <img
                 src={rootAvatar}
                 alt={rootUserName}
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: "50%",
-                  objectFit: "cover",
-                  cursor: "pointer",
-                }}
+                className="comment-avatar"
+                style={{ width: 34, height: 34 }}
                 onClick={() => goUser(root.user_id)}
               />
 
               <div className="flex-grow-1">
                 <div className="d-flex justify-content-between align-items-center">
-                  <div
-                    className="small"
-                    style={{ fontWeight: 600, cursor: "pointer" }}
-                    onClick={() => goUser(root.user_id)}
-                  >
+                  <div className="comment-author" onClick={() => goUser(root.user_id)}>
                     {rootUserName}
                   </div>
-                  <div className="text-muted" style={{ fontSize: 12 }}>
+                  <div className="text-muted comment-meta">
                     {formatTime(root.created_at)}
                   </div>
                 </div>
 
                 <div
-                  className="mt-1"
+                  className="mt-1 comment-body"
                   style={{ cursor: canComment ? "text" : "default" }}
-                  onClick={() => beginReply(root)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    beginReply(root, rootId);
+                  }}
                 >
                   <RichContent content={root.is_deleted ? "[deleted]" : root.content} />
                 </div>
@@ -606,13 +574,10 @@ export default function CommentSection(props: {
                 {renderActions(root, rootId)}
                 {renderReplyBox(root)}
 
-                {/* replies：用浅灰背景块区分（无边框） */}
+                {/* replies */}
                 {rs.items.length > 0 && (
-                  <div className="mt-2 ms-4">
-                    <div
-                      className="bg-light"
-                      style={{ borderRadius: 14, padding: "10px 12px" }}
-                    >
+                  <div className="replies-wrap">
+                    <div className="replies-box">
                       {rs.items.map((r) => {
                         const rUserName = r.user_name || `User #${r.user_id}`;
                         const rAvatar =
@@ -621,18 +586,13 @@ export default function CommentSection(props: {
                             : DEFAULT_AVATAR;
 
                         return (
-                          <div key={r.id} className="py-2">
+                          <div key={r.id} className="reply-item">
                             <div className="d-flex gap-2">
                               <img
                                 src={rAvatar}
                                 alt={rUserName}
-                                style={{
-                                  width: 30,
-                                  height: 30,
-                                  borderRadius: "50%",
-                                  objectFit: "cover",
-                                  cursor: "pointer",
-                                }}
+                                className="comment-avatar"
+                                style={{ width: 26, height: 26 }}
                                 onClick={() => goUser(r.user_id)}
                               />
 
@@ -647,22 +607,27 @@ export default function CommentSection(props: {
                                     </span>
 
                                     {r.reply_to_user_name ? (
-                                      <span
-                                        className="text-muted"
-                                        style={{ fontWeight: 400, marginLeft: 6 }}
-                                      >
+                                      <span className="text-muted reply-to">
                                         → {r.reply_to_user_name}
                                       </span>
                                     ) : null}
                                   </div>
 
-                                  <div className="text-muted" style={{ fontSize: 12 }}>
+                                  <div className="text-muted comment-meta">
                                     {formatTime(r.created_at)}
                                   </div>
                                 </div>
 
-                                <div className="mt-1" onClick={() => beginReply(r)}>
-                                  <RichContent content={r.is_deleted ? "[deleted]" : r.content} />
+                                <div
+                                  className="mt-1 comment-body"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    beginReply(r, rootId);
+                                  }}
+                                >
+                                  <RichContent
+                                    content={r.is_deleted ? "[deleted]" : r.content}
+                                  />
                                 </div>
 
                                 {renderActions(r, rootId)}
@@ -679,18 +644,11 @@ export default function CommentSection(props: {
                         <Button
                           size="sm"
                           variant="link"
-                          className="p-0 text-decoration-none"
+                          className="p-0 text-decoration-none comment-action-btn"
                           onClick={() => loadMoreReplies(rootId)}
                           disabled={rs.loading}
                         >
-                          {rs.loading ? (
-                            <>
-                              <Spinner animation="border" size="sm" className="me-2" />
-                              Loading…
-                            </>
-                          ) : (
-                            "Load more replies"
-                          )}
+                          {rs.loading ? <GopherLoader /> : "Load more replies"}
                         </Button>
                       )}
                     </div>
@@ -702,13 +660,13 @@ export default function CommentSection(props: {
         );
       })}
 
-      {/* load more threads：改成 link，避免 outline 边框 */}
+      {/* load more threads */}
       <div className="mt-2 d-flex justify-content-center">
         {hasMore ? (
           <Button
             size="sm"
             variant="link"
-            className="text-decoration-none"
+            className="text-decoration-none comment-action-btn"
             onClick={() => loadThreads(false)}
             disabled={loadingThreads}
           >

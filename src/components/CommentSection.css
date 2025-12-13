@@ -1,0 +1,90 @@
+/* 整体缩小一档 */
+.comment-section {
+  font-size: 13px;
+}
+
+.comment-section .comment-meta {
+  font-size: 11px;
+}
+
+.comment-section .comment-body {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* Reply / actions 更小更克制 */
+.comment-section .comment-action {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.comment-section .comment-action:hover {
+  opacity: 1;
+}
+
+/* replies 块更紧凑 */
+.comment-section .replies-box {
+  border-radius: 12px;
+  padding: 8px 10px;
+}
+
+/* root item hover 也更淡一点（可选） */
+.comment-section .comment-item:hover {
+  background: rgba(0, 0, 0, 0.015);
+}
+
+/* Reply / Load more 等 link 按钮：变灰 + 更小 */
+.comment-action-btn {
+  font-size: 11px;              /* 更小 */
+  color: rgba(0, 0, 0, 0.55) !important;  /* 变灰（覆盖 bootstrap） */
+  opacity: 1;                   /* 你之前用了 opacity，这里直接固定 */
+}
+
+.comment-action-btn:hover {
+  color: rgba(0, 0, 0, 0.75) !important;
+  text-decoration: none;
+}
+
+.comment-action-btn:active,
+.comment-action-btn:focus {
+  color: rgba(0, 0, 0, 0.75) !important;
+  box-shadow: none !important;
+}
+
+
+/* CommentSection.css */
+.comment-avatar {
+  border-radius: 50% !important;
+  object-fit: cover;
+  display: block;
+  flex-shrink: 0;
+}
+
+
+/* 整个 thread（root comment 那一块）淡灰色背景 */
+.comment-item {
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 14px;
+  padding: 10px 10px; /* 你可以按需要调 */
+  margin-bottom: 10px;
+}
+
+/* replies 区域再淡一点 */
+.replies-wrap {
+  margin-top: 8px;
+  margin-left: 36px; /* 让 replies 相对缩进（可选） */
+}
+
+.replies-box {
+  background: rgba(255, 255, 255, 0.02) !important; /* 覆盖 bg-light */
+  border-radius: 12px;
+  padding: 8px 10px;
+}
+
+
+
+.replies-wrap {
+  margin-left: -20px; /* 你现在如果是 36px，就改小 */
+}
+
+

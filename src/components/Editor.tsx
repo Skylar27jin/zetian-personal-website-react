@@ -597,7 +597,7 @@ const Editor: React.FC<EditorProps> = ({
           className="editor-emoji-toggle"
           onClick={() => setShowPicker((s) => !s)}
         >
-          ☺
+          ヅ
         </button>
 
         <EmojiPicker
