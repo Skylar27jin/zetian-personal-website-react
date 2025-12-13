@@ -137,3 +137,15 @@
   margin-bottom: 8px;
   pointer-events: auto;
 }
+
+
+/* Editor 输入区：iOS 防止 focus 自动 zoom */
+.editor-editable {
+  font-size: 16px;      /* 关键 */
+  line-height: 1.7;
+}
+
+/* placeholder 也最好同样字号 */
+.editor-editable[data-empty="true"]::before {
+  font-size: 16px;
+}
