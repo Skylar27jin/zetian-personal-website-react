@@ -4,6 +4,7 @@ import RichContent from "../components/RichContent";
 import Editor from "../components/Editor";
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import "./PostDetailPage.css";
 import {
   Container,
   Spinner,
@@ -13,11 +14,9 @@ import {
   Form,
   Badge,
   Dropdown,
+  Tab,
+  Tabs,
 } from "react-bootstrap";
-import { motion } from "framer-motion";
-
-
-import Navbar from "../components/Navbar";
 import { useMeAuth } from "../hooks/useMeAuth";
 import {
   getPostByID,
@@ -45,6 +44,7 @@ import ReplyPreview from "../components/ReplyPreview";
 import PostReactionButtons from "../components/PostReactionButtons";
 import LoginRequiredModal from "../components/LoginRequiredModal";
 import { PostUpdater, usePostReactions } from "../hooks/usePostReactions";
+import CommentSection from "../components/CommentSection";
 
 
 const ICON_SIZE = 28;
@@ -123,11 +123,13 @@ export default function PostDetailPage() {
 
   const [showLoginRequired, setShowLoginRequired] = useState(false);
 
+  const [detailTab, setDetailTab] = useState<"comments" | "foryou">("comments");
+
+
   // URL 参数非法
   if (Number.isNaN(postId)) {
     return (
       <div className="bg-light min-vh-100 d-flex flex-column">
-        <Navbar />
         <main className="flex-grow-1 py-4">
           <Container style={{ maxWidth: "960px" }}>
             <Alert variant="danger">Invalid post id in URL.</Alert>
@@ -314,6 +316,7 @@ export default function PostDetailPage() {
   // Comment / Share on detail
   // ====================
   const handleCommentJump = () => {
+    setDetailTab("comments");
     if (typeof window === "undefined") return;
     const el = document.getElementById("post-comments-section");
     if (el) {
@@ -473,10 +476,8 @@ export default function PostDetailPage() {
   // ====================
   return (
     <div className="bg-light min-vh-100 d-flex flex-column">
-      <Navbar />
-
       <main className="flex-grow-1 py-4">
-        <Container style={{ maxWidth: "1200px" }}>
+        <Container fluid style={{ maxWidth: "1200px" }}>
           {/* 顶部：返回 + 当前身份 */}
           <header className="mb-3 d-flex justify-content-between align-items-center">
             <Button
@@ -519,11 +520,12 @@ export default function PostDetailPage() {
             </Alert>
           )}
 
-          {/* 主体：左内容 + 右评论占位 */}
-          {!loading && !error && post && (
-            <div className="d-flex flex-column flex-lg-row gap-4 mt-3">
-              {/* 左侧：正文区域 */}
-              <section className="flex-grow-1">
+        {/* 主体 */}
+        {!loading && !error && post && (
+          <div className="mt-3">
+            {/* 正文（单列） */}
+            <div className="d-flex flex-column">
+              <section className="w-100">
                 {/* 标题行 */}
                 <div className="d-flex align-items-center gap-2 mb-2">
                   <h2 className="fw-bold mb-0">{post.title}</h2>
@@ -535,8 +537,7 @@ export default function PostDetailPage() {
                   {/* avatar */}
                   <img
                     src={
-                      post.user_avatar_url &&
-                      post.user_avatar_url.trim().length > 0
+                      post.user_avatar_url && post.user_avatar_url.trim().length > 0
                         ? post.user_avatar_url
                         : DEFAULT_AVATAR
                     }
@@ -560,12 +561,10 @@ export default function PostDetailPage() {
                         className="text-decoration-none"
                         style={{ fontWeight: 500 }}
                       >
-                        {post.user_name
-                          ? `${post.user_name}`
-                          : `User #${post.user_id}`}
+                        {post.user_name ? `${post.user_name}` : `User #${post.user_id}`}
                       </Link>
 
-                      {/* 作者是否关注了当前 viewer：Follows you */}
+                      {/* 作者是否关注了当前 viewer：Followed you */}
                       {!isOwner &&
                         authorProfile &&
                         !authorProfileLoading &&
@@ -583,7 +582,6 @@ export default function PostDetailPage() {
                         !authError && (
                           <div className="d-inline-flex align-items-center gap-1">
                             {authorProfile.isFollowing ? (
-                              // 已关注：按钮本身是一个 Dropdown
                               <Dropdown align="end">
                                 <Dropdown.Toggle
                                   variant="outline-primary"
@@ -598,13 +596,15 @@ export default function PostDetailPage() {
                                   </span>
                                 </Dropdown.Toggle>
                                 <Dropdown.Menu>
-                                  <Dropdown.Item onClick={handleUnfollow} disabled={followBusy}>
+                                  <Dropdown.Item
+                                    onClick={handleUnfollow}
+                                    disabled={followBusy}
+                                  >
                                     Unfollow
                                   </Dropdown.Item>
                                 </Dropdown.Menu>
                               </Dropdown>
                             ) : (
-                              // 未关注：普通按钮，点击直接 follow
                               <Button
                                 variant="primary"
                                 size="sm"
@@ -621,6 +621,7 @@ export default function PostDetailPage() {
                           </div>
                         )}
                     </div>
+
                     <div>
                       {formatTime(post.created_at)}
                       {" · "}
@@ -647,7 +648,7 @@ export default function PostDetailPage() {
                   </div>
                 )}
 
-                {/* media：多图轮播 */}
+                {/* media */}
                 {post.media_type !== "text" &&
                   post.media_urls &&
                   post.media_urls.length > 0 && (
@@ -657,49 +658,49 @@ export default function PostDetailPage() {
                     />
                   )}
 
-                {/* 正文：可滚动 + 进度条 */}
+                {/* 正文 */}
                 <ScrollablePanel maxHeight="70vh">
                   <RichContent content={post.content} />
                 </ScrollablePanel>
 
                 {/* 底部统计 + 操作区 */}
-                <br/>
+                <br />
 
                 <div className="d-flex align-items-center text-muted small">
-                  {/* 左侧统计：只显示浏览量 */}
-                  <div>
-                    view: {post.view_count}
-                  </div>
+                  <div>view: {post.view_count}</div>
 
-                  {/* 右侧按钮组：左边三点，下方反应按钮整体在最右侧 */}
                   <div className="d-flex align-items-center gap-2 ms-auto">
                     <PostActionsDropdown
                       onEdit={isOwner ? openEditModal : undefined}
-                      onDelete={isOwner ? () => setShowDeleteModal(true) : undefined}
-                      onReport={!isOwner ? () => setShowReportModal(true) : undefined}
+                      onDelete={
+                        isOwner ? () => setShowDeleteModal(true) : undefined
+                      }
+                      onReport={
+                        !isOwner ? () => setShowReportModal(true) : undefined
+                      }
                       onReply={viewerId ? handleReply : undefined}
                       deleting={isOwner ? deleting : false}
                     />
 
                     <PostReactionButtons
-                    post={post}
-                    viewerId={viewerId}
-                    onLike={handleLike}
-                    onUnlike={handleUnlike}
-                    onFav={handleFav}
-                    onUnfav={handleUnfav}
-                    iconSize={ICON_SIZE}
-                    onRequireLogin={() => setShowLoginRequired(true)}
-                    stopPropagation={false}
-                    showComment
-                    showShare
-                    onCommentClick={handleCommentJump}      // ✅ 只滚动到评论区域
-                    onShareClick={() => handleSharePost()}  // ✅ 打开分享 Modal
+                      post={post}
+                      viewerId={viewerId}
+                      onLike={handleLike}
+                      onUnlike={handleUnlike}
+                      onFav={handleFav}
+                      onUnfav={handleUnfav}
+                      iconSize={ICON_SIZE}
+                      onRequireLogin={() => setShowLoginRequired(true)}
+                      stopPropagation={false}
+                      showComment
+                      showShare
+                      onCommentClick={handleCommentJump}
+                      onShareClick={() => handleSharePost()}
                     />
                   </div>
                 </div>
 
-                {/* 如果是 reply 帖，展示原帖预览 */}
+                {/* reply preview */}
                 {post.reply_to && (
                   <div className="mb-3 mt-3">
                     <ReplyPreview
@@ -712,24 +713,56 @@ export default function PostDetailPage() {
                   </div>
                 )}
               </section>
-
-              {/* 右侧：评论区域占位 */}
-              <aside
-                id="post-comments-section"
-                className="flex-shrink-0"
-                style={{ width: "100%", maxWidth: "360px" }}
-              >
-                <div className="bg-white rounded-4 shadow-sm p-3 p-md-4">
-                  <h5 className="fw-semibold mb-3">Comments</h5>
-                  <p className="text-muted small mb-0">
-                    Comment system coming soon.
-                    <br />
-                    This area is reserved for threaded discussions / replies.
-                  </p>
-                </div>
-              </aside>
             </div>
-          )}
+
+            {/* Comments / For you（无边界，无外框） */}
+            <section id="post-comments-section" className="mt-4 w-100">
+              {/* Tabs：复用 Navbar feed-tabs/feed-tab 体系 */}
+              <nav className="feed-tabs post-detail-tabs">
+                <button
+                  type="button"
+                  className={
+                    "feed-tab post-detail-tab" +
+                    (detailTab === "comments" ? " active" : "")
+                  }
+                  onClick={() => setDetailTab("comments")}
+                >
+                  Comments
+                </button>
+
+                <button
+                  type="button"
+                  className={
+                    "feed-tab post-detail-tab" +
+                    (detailTab === "foryou" ? " active" : "")
+                  }
+                  onClick={() => setDetailTab("foryou")}
+                >
+                  For you
+                </button>
+              </nav>
+
+              {/* 内容区域：不加 border/card，只留顶部间距 */}
+              <div className="mt-3">
+                {detailTab === "comments" ? (
+                  <CommentSection
+                    postId={postId}
+                    viewerId={viewerId ?? null}
+                    canComment={!!viewerId && !authError}
+                    onRequireLogin={() => setShowLoginRequired(true)}
+                  />
+                ) : (
+                  <div className="text-muted small">
+                    For you is coming soon. This will show recommended posts related to
+                    this one.
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
+        )}
+
+
         </Container>
       </main>
 

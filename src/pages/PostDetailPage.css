@@ -1,0 +1,28 @@
+/* src/pages/PostDetailPage.css */
+
+/* 复用 feed-tabs，但更像 B 站评论区：居中 + 下边分隔线 */
+.post-detail-tabs.feed-tabs {
+  justify-content: flex-start;      /* 想居中就改成 center */
+  border-top: none;
+  border-bottom: 1px solid #f3f3f3;
+  padding-top: 0;
+  padding-bottom: 6px;
+  gap: 24px;
+}
+
+/* button 版本的 feed-tab：去掉 button 默认样式 */
+.post-detail-tab {
+  background: transparent;
+  border: none;
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.post-detail-tab:focus {
+  outline: none;
+}
+
+/* active 更“黑”一点（你 profile 也这么做了） */
+.post-detail-tab.active {
+  color: #000;
+}
