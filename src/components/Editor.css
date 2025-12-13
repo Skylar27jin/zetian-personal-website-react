@@ -89,8 +89,21 @@
 
 /* 聚焦时更明显一点 */
 .editor-editable:focus {
-  border-color: rgba(10, 132, 255, 0.45);
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.12);
+  border-color: rgba(0, 0, 0, 0.18); /* 保持和默认一致 */
+  box-shadow: none;
+  outline: none;
+}
+
+
+/* 保险：有些浏览器用 focus-visible 画 ring */
+.editor-editable:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+/* 保险：有些 UA 会在 contenteditable 上用 -webkit-focus-ring-color */
+.editor-editable {
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* emoji */
