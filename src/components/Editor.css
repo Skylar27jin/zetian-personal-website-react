@@ -62,18 +62,17 @@
   line-height: 1;
 }
 
-
 /* ===== 输入框本体：无论是否 focus 都可见 ===== */
 .editor-editable {
-  position: relative;          /* 让 ::before placeholder 可以定位 */
+  position: relative; /* 让 ::before placeholder 可以定位 */
   padding: 12px 14px;
   line-height: 1.7;
   caret-color: #0a84ff;
 
-  background: #fff;            /* 永远有底色 */
+  background: #fff;
   color: #111;
 
-  border: 1px solid rgba(0, 0, 0, 0.18); /* 永远有边框 */
+  border: 1px solid rgba(0, 0, 0, 0.18);
   border-radius: 10px;
 
   outline: none;
@@ -82,10 +81,13 @@
   direction: ltr;
   unicode-bidi: plaintext;
 
-  min-height: 7.5em;           /* 永远有高度 */
+  min-height: 7.5em;
+
+  /* iOS 防止 focus 自动 zoom（关键：>=16px） */
+  font-size: 16px;
 }
 
-/* 聚焦时更明显一点（可选，但不会“消失”） */
+/* 聚焦时更明显一点 */
 .editor-editable:focus {
   border-color: rgba(10, 132, 255, 0.45);
   box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.12);
@@ -100,13 +102,13 @@
   pointer-events: none;
 }
 
-/* 选中文本高亮（保留你原来的） */
+/* 选中文本高亮 */
 .editor-editable ::selection {
   background: rgba(10, 132, 255, 0.25);
 }
 
-/* ===== placeholder：用 data-empty 控制（不依赖 :empty） ===== */
-.editor-editable[data-empty="true"]::before {
+/* ===== placeholder：data-empty 控制；拼音预编辑(data-composing)期间强制隐藏 ===== */
+.editor-editable[data-empty="true"]:not([data-composing="true"])::before {
   content: attr(data-placeholder);
   position: absolute;
   top: 12px;
@@ -118,6 +120,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: calc(100% - 28px);
+
+  font-size: 16px; /* placeholder 字号也 >=16px */
 }
 
 /* 默认隐藏 toolbar（不占空间/不可点） */
@@ -125,7 +129,6 @@
   opacity: 0;
   max-height: 0;
   margin-bottom: 0;
-  /* overflow: hidden; */
   pointer-events: none;
   transition: opacity 0.15s ease, max-height 0.15s ease, margin-bottom 0.15s ease;
 }
@@ -133,19 +136,7 @@
 /* 当输入框或按钮/Picker 在内部获得焦点时显示 */
 .editor-wrapper:focus-within .editor-toolbar {
   opacity: 1;
-  max-height: 60px;  /* 足够容纳 40px 高的按钮 */
+  max-height: 60px;
   margin-bottom: 8px;
   pointer-events: auto;
-}
-
-
-/* Editor 输入区：iOS 防止 focus 自动 zoom */
-.editor-editable {
-  font-size: 16px;      /* 关键 */
-  line-height: 1.7;
-}
-
-/* placeholder 也最好同样字号 */
-.editor-editable[data-empty="true"]::before {
-  font-size: 16px;
 }
