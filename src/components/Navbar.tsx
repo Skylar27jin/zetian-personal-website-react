@@ -11,8 +11,8 @@ import { LogoutUser } from "../api/userApi";
 
 const FEED_TABS = [
   { key: "school", label: "School", to: "/school" },
-  { key: "me", label: "Me", to: "/me" },
   { key: "following", label: "Following", to: "/following" },
+  { key: "me", label: "Me", to: "/me" },
 ];
 
 export default function MyNavbar() {

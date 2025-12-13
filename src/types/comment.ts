@@ -1,4 +1,4 @@
-// src/types/comment.d.ts
+// src/types/comment.ts
 
 // thrift enum: NEW_TO_OLD = 0, OLD_TO_NEW = 1
 export enum CommentOrder {
@@ -30,6 +30,7 @@ export interface Comment {
   // stats
   reply_count: number;
   like_count: number;
+  liked_by_viewer?: boolean | null;
 
   // emoji (future)
   my_emoji?: string | null;
@@ -100,4 +101,27 @@ export interface ListCommentRepliesResp {
 
   next_cursor?: string | null;
   has_more?: boolean | null;
+}
+
+
+/* =========================
+   Like / Unlike
+   ========================= */
+
+export interface LikeCommentReq {
+  comment_id: number;
+}
+
+export interface LikeCommentResp {
+  isSuccessful: boolean;
+  errorMessage: string;
+}
+
+export interface UnlikeCommentReq {
+  comment_id: number;
+}
+
+export interface UnlikeCommentResp {
+  isSuccessful: boolean;
+  errorMessage: string;
 }

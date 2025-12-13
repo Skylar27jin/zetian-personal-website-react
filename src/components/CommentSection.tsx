@@ -6,29 +6,12 @@ import RichContent from "./RichContent";
 import formatTime from "../pkg/TimeFormatter";
 import "./CommentSection.css";
 
-import {
-  createComment,
-  deleteComment,
-  listCommentReplies,
-  listPostCommentThreads,
-} from "../api/commentApi";
-
 import type { Comment, CommentThread } from "../types/comment";
-import { CommentOrder } from "../types/comment";
 import GopherLoader from "./GopherLoader";
+import LoginRequiredModal from "./LoginRequiredModal";
+import { useComments } from "../hooks/useComments";
 
 const MAX_COMMENT_LEN = 500;
-const THREAD_PAGE_SIZE = 20;
-const REPLIES_PREVIEW_LIMIT = 2;
-const REPLIES_PAGE_SIZE = 20;
-
-type RepliesState = {
-  items: Comment[];
-  next_cursor: string | null;
-  has_more: boolean;
-  loading: boolean;
-  error: string | null;
-};
 
 type ReplyTarget = {
   commentId: number; // parent_id
@@ -37,26 +20,9 @@ type ReplyTarget = {
   userName: string;
 };
 
-function makeCursorFromLast(list: Comment[]): string | null {
-  if (!list || list.length === 0) return null;
-  const last = list[list.length - 1];
-  if (!last?.created_at || !last?.id) return null;
-  return `${last.created_at}|${last.id}`;
-}
-
 function clampLen(s: string, max: number): string {
   if (!s) return "";
   return s.length > max ? s.slice(0, max) : s;
-}
-
-function emptyRepliesState(): RepliesState {
-  return {
-    items: [],
-    next_cursor: null,
-    has_more: false,
-    loading: false,
-    error: null,
-  };
 }
 
 // 3-dots toggle（阻止冒泡）
@@ -88,26 +54,34 @@ export default function CommentSection(props: {
   /** 默认 false：因为 PostDetail 已经有 Comments tab 了 */
   showHeader?: boolean;
 }) {
-  const { postId, viewerId, canComment, onRequireLogin, showHeader = false } =
-    props;
+  const { postId, viewerId, canComment, onRequireLogin, showHeader = false } = props;
 
   const navigate = useNavigate();
   const DEFAULT_AVATAR = "../gopher_front.png";
 
-  const [threads, setThreads] = useState<CommentThread[]>([]);
-  const [loadingThreads, setLoadingThreads] = useState(false);
-  const [threadsErr, setThreadsErr] = useState<string | null>(null);
+  const {
+    threads,
+    loadingThreads,
+    threadsErr,
+    clearError,
+    hasMore,
+    repliesMap,
+    loadMoreThreads,
+    loadMoreReplies,
+    createTopComment,
+    createReply,
+    softDelete,
+    toggleLike,
+    refresh,
+  } = useComments(postId);
 
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
 
   const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null);
   const [replyDraft, setReplyDraft] = useState("");
-
-  const [repliesMap, setRepliesMap] = useState<Record<number, RepliesState>>({});
 
   const canPost = draft.trim().length > 0;
 
@@ -119,20 +93,18 @@ export default function CommentSection(props: {
     return true;
   };
 
-  const goUser = (uid: number) => navigate(`/user/${uid}`);
-
-  const initRepliesStateFromThread = (t: CommentThread): RepliesState => {
-    const preview = t.replies_preview ?? [];
-    return {
-      items: preview,
-      next_cursor: makeCursorFromLast(preview),
-      has_more: (t.root?.reply_count ?? 0) > preview.length,
-      loading: false,
-      error: null,
-    };
+  const ensureLoginForLike = (): boolean => {
+    // 点 like 才弹 modal（你的要求）
+    if (!viewerId || !canComment) {
+      setShowLoginModal(true);
+      return false;
+    }
+    return true;
   };
 
-  // 关键修复：beginReply 必须显式拿到 rootId（渲染时就有），不要扫 threads 反查
+  const goUser = (uid: number) => navigate(`/user/${uid}`);
+
+  // beginReply 必须显式拿 rootId
   const beginReply = (c: Comment, rootId: number) => {
     if (!ensureLogin()) return;
 
@@ -145,55 +117,12 @@ export default function CommentSection(props: {
     setReplyDraft("");
   };
 
-  const loadThreads = async (reset: boolean) => {
-    setThreadsErr(null);
-    setLoadingThreads(true);
-
-    try {
-      const resp = await listPostCommentThreads({
-        post_id: postId,
-        cursor: reset ? "" : nextCursor ?? "",
-        limit: THREAD_PAGE_SIZE,
-        replies_preview_limit: REPLIES_PREVIEW_LIMIT,
-        order: CommentOrder.NEW_TO_OLD,
-      });
-
-      if (!resp.isSuccessful) {
-        throw new Error(resp.errorMessage || "Load comments failed");
-      }
-
-      const newThreads = resp.threads ?? [];
-      setThreads((prev) => (reset ? newThreads : [...prev, ...newThreads]));
-
-      setRepliesMap((prev) => {
-        const copy = { ...prev };
-        newThreads.forEach((t) => {
-          const rid = t?.root?.id;
-          if (rid && copy[rid] === undefined) {
-            copy[rid] = initRepliesStateFromThread(t);
-          }
-        });
-        return copy;
-      });
-
-      setNextCursor(resp.next_cursor ?? null);
-      setHasMore(!!resp.has_more);
-    } catch (e: any) {
-      setThreadsErr(e?.message || "Network error");
-    } finally {
-      setLoadingThreads(false);
-    }
-  };
-
   useEffect(() => {
-    setThreads([]);
-    setRepliesMap({});
-    setNextCursor(null);
-    setHasMore(false);
+    // postId 变动时，清理输入框（数据由 hook 缓存/加载）
     setReplyTarget(null);
     setReplyDraft("");
     setDraft("");
-    loadThreads(true);
+    clearError();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postId]);
 
@@ -203,28 +132,13 @@ export default function CommentSection(props: {
     if (!content) return;
 
     setPosting(true);
-    setThreadsErr(null);
+    clearError();
 
     try {
-      const resp = await createComment({ post_id: postId, content });
-      if (!resp.isSuccessful || !resp.comment) {
-        throw new Error(resp.errorMessage || "Create failed");
-      }
-
-      const newThread: CommentThread = {
-        root: resp.comment,
-        replies_preview: [],
-      };
-      setThreads((prev) => [newThread, ...prev]);
-
-      setRepliesMap((prev) => ({
-        ...prev,
-        [resp.comment!.id]: emptyRepliesState(),
-      }));
-
+      await createTopComment(content);
       setDraft("");
     } catch (e: any) {
-      setThreadsErr(e?.message || "Network error while creating comment");
+      // hook 会写 threadsErr；这里不额外处理也行
     } finally {
       setPosting(false);
     }
@@ -240,102 +154,11 @@ export default function CommentSection(props: {
     const { commentId, rootId } = replyTarget;
 
     try {
-      const resp = await createComment({
-        post_id: postId,
-        content,
-        parent_id: commentId,
-      });
-
-      if (!resp.isSuccessful || !resp.comment) {
-        throw new Error(resp.errorMessage || "Reply failed");
-      }
-
-      setRepliesMap((prev) => {
-        const cur = prev[rootId] ?? emptyRepliesState();
-        const merged = [resp.comment!, ...cur.items]; // NEW_TO_OLD
-        return {
-          ...prev,
-          [rootId]: {
-            ...cur,
-            items: merged,
-            next_cursor: makeCursorFromLast(merged),
-          },
-        };
-      });
-
-      setThreads((prev) =>
-        prev.map((t) =>
-          t.root.id !== rootId
-            ? t
-            : {
-                ...t,
-                root: {
-                  ...t.root,
-                  reply_count: (t.root.reply_count ?? 0) + 1,
-                },
-              }
-        )
-      );
-
+      await createReply(commentId, rootId, content);
       setReplyDraft("");
       setReplyTarget(null);
     } catch (e: any) {
-      setRepliesMap((prev) => ({
-        ...prev,
-        [rootId]: {
-          ...(prev[rootId] ?? emptyRepliesState()),
-          error: e?.message || "Network error while replying",
-        },
-      }));
-    }
-  };
-
-  const loadMoreReplies = async (rootId: number) => {
-    const st = repliesMap[rootId];
-    if (!st || st.loading || !st.has_more) return;
-
-    setRepliesMap((prev) => ({
-      ...prev,
-      [rootId]: { ...prev[rootId], loading: true, error: null },
-    }));
-
-    try {
-      const resp = await listCommentReplies({
-        root_id: rootId,
-        cursor: st.next_cursor ?? "",
-        limit: REPLIES_PAGE_SIZE,
-        order: CommentOrder.NEW_TO_OLD,
-      });
-
-      if (!resp.isSuccessful) {
-        throw new Error(resp.errorMessage || "Load replies failed");
-      }
-
-      const newRows = resp.replies ?? [];
-      setRepliesMap((prev) => {
-        const cur = prev[rootId];
-        const merged = [...cur.items, ...newRows]; // NEW_TO_OLD
-        return {
-          ...prev,
-          [rootId]: {
-            ...cur,
-            items: merged,
-            next_cursor: resp.next_cursor ?? makeCursorFromLast(merged),
-            has_more: !!resp.has_more,
-            loading: false,
-            error: null,
-          },
-        };
-      });
-    } catch (e: any) {
-      setRepliesMap((prev) => ({
-        ...prev,
-        [rootId]: {
-          ...prev[rootId],
-          loading: false,
-          error: e?.message || "Network error",
-        },
-      }));
+      // hook 会写 threadsErr；这里不额外处理也行
     }
   };
 
@@ -346,69 +169,49 @@ export default function CommentSection(props: {
     if (!ok) return;
 
     try {
-      const resp = await deleteComment({ comment_id: c.id });
-      if (!resp?.isSuccessful) {
-        throw new Error(resp?.errorMessage || "Delete failed");
-      }
-
-      if (c.parent_id == null) {
-        setThreads((prev) =>
-          prev.map((t) =>
-            t.root.id !== c.id
-              ? t
-              : {
-                  ...t,
-                  root: { ...t.root, is_deleted: true, content: "[deleted]" },
-                }
-          )
-        );
-      } else {
-        setRepliesMap((prev) => {
-          const st = prev[rootId];
-          if (!st) return prev;
-          return {
-            ...prev,
-            [rootId]: {
-              ...st,
-              items: st.items.map((x) =>
-                x.id !== c.id ? x : { ...x, is_deleted: true, content: "[deleted]" }
-              ),
-            },
-          };
-        });
-
-        setThreads((prev) =>
-          prev.map((t) =>
-            t.root.id !== rootId
-              ? t
-              : {
-                  ...t,
-                  root: {
-                    ...t.root,
-                    reply_count: Math.max(0, (t.root.reply_count ?? 0) - 1),
-                  },
-                }
-          )
-        );
-      }
+      await softDelete(c, rootId);
 
       if (replyTarget?.commentId === c.id) {
         setReplyTarget(null);
         setReplyDraft("");
       }
     } catch (e: any) {
-      setThreadsErr(e?.message || "Network error while deleting");
+      // hook 会写 threadsErr
     }
+  };
+
+  const handleLikeClick = async (c: Comment, rootId: number) => {
+    if (!ensureLoginForLike()) return;
+    await toggleLike(rootId, c.id);
   };
 
   const renderActions = (c: Comment, rootId: number) => {
     const isMine = !!viewerId && viewerId === c.user_id;
+    const liked = Boolean((c as any).liked_by_viewer);
 
     return (
       <div className="d-flex align-items-center comment-actions">
+        {/* Like */}
+        <button
+          type="button"
+          className="btn btn-link p-0 d-flex align-items-center"
+          style={{ textDecoration: "none" }}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleLikeClick(c, rootId);
+          }}
+          aria-label={liked ? "unlike comment" : "like comment"}
+        >
+          <img
+            src={liked ? "/hearted.png" : "/heart.png"}
+            alt={liked ? "hearted" : "heart"}
+            style={{ width: 18, height: 18 }}
+          />
+        </button>
+        <span className="text-muted ms-1">{c.like_count ?? 0}</span>
 
         {c.parent_id == null && (
-          <span className="text-muted">{c.reply_count ?? 0} replies</span>
+          <span className="text-muted ms-3">{c.reply_count ?? 0} replies</span>
         )}
 
         <div className="ms-auto" onClick={(e) => e.stopPropagation()}>
@@ -475,6 +278,9 @@ export default function CommentSection(props: {
       {showHeader && (
         <div className="d-flex align-items-center justify-content-between mb-2">
           <h5 className="fw-semibold mb-0">Comments</h5>
+          <Button size="sm" variant="outline-secondary" onClick={refresh}>
+            Refresh
+          </Button>
         </div>
       )}
 
@@ -527,11 +333,11 @@ export default function CommentSection(props: {
       )}
 
       {/* threads list */}
-      {threads.map((t) => {
+      {threads.map((t: CommentThread) => {
         const root = t.root;
         const rootId = root.id;
 
-        const rs = repliesMap[rootId] ?? initRepliesStateFromThread(t);
+        const rs = repliesMap[rootId] ?? { items: t.replies_preview ?? [], has_more: false, next_cursor: null, loading: false, error: null };
 
         const rootUserName = root.user_name || `User #${root.user_id}`;
         const rootAvatar =
@@ -578,7 +384,7 @@ export default function CommentSection(props: {
                 {rs.items.length > 0 && (
                   <div className="replies-wrap">
                     <div className="replies-box">
-                      {rs.items.map((r) => {
+                      {rs.items.map((r: Comment) => {
                         const rUserName = r.user_name || `User #${r.user_id}`;
                         const rAvatar =
                           r.user_avatar_url && r.user_avatar_url.trim()
@@ -667,7 +473,7 @@ export default function CommentSection(props: {
             size="sm"
             variant="link"
             className="text-decoration-none comment-action-btn"
-            onClick={() => loadThreads(false)}
+            onClick={loadMoreThreads}
             disabled={loadingThreads}
           >
             {loadingThreads ? (
@@ -683,6 +489,13 @@ export default function CommentSection(props: {
           <div className="text-muted small">No more comments.</div>
         )}
       </div>
+
+      {/* 只在点 like 时弹 */}
+      <LoginRequiredModal
+        show={showLoginModal}
+        onHide={() => setShowLoginModal(false)}
+        message="Please log in first to like this comment."
+      />
     </div>
   );
 }

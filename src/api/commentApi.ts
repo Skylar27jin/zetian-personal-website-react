@@ -8,6 +8,10 @@ import type {
   ListPostCommentThreadsResp,
   ListCommentRepliesReq,
   ListCommentRepliesResp,
+  LikeCommentReq,
+  LikeCommentResp,
+  UnlikeCommentResp,
+  UnlikeCommentReq,
 } from "../types/comment";
 
 const BASE_URL = import.meta.env.VITE_HERTZ_BASE_URL;
@@ -81,4 +85,16 @@ export async function listCommentReplies(
     order: req.order,
   })}`;
   return getJSON<ListCommentRepliesResp>(url);
+}
+
+
+/* ================================
+   Like / Unlike (POST)
+   ================================ */
+export async function likeComment(req: LikeCommentReq): Promise<LikeCommentResp> {
+  return postJSON<LikeCommentResp>(`${BASE_URL}/comment/like`, req);
+}
+
+export async function unlikeComment(req: UnlikeCommentReq): Promise<UnlikeCommentResp> {
+  return postJSON<UnlikeCommentResp>(`${BASE_URL}/comment/unlike`, req);
 }
