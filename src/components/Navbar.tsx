@@ -130,10 +130,12 @@ export default function MyNavbar() {
               title="Inbox (coming soon)"
               className="icon-plain"
               aria-label="Inbox"
-              onClick={() => alert("Inbox coming soon~")}
-              onKeyDown={(e) =>
-                (e.key === "Enter" || e.key === " ") && alert("Inbox coming soon~")
-              }
+              onClick={() =>  window.location.href = `/chat`}
+              
+              // onKeyDown={(e) =>
+              //   window.location.href = `/chat`
+              // } 
+              //what does the above do? I forgot lol...
             >
               ✉️
             </span>

@@ -16,6 +16,9 @@ import SettingsPage from "./pages/Settings/SettingsPage";
 import FollowingFeedPage from "./pages/FollowingFeedPage";
 import SettingsProfilePage from "./pages/Settings/SettingsProfilePage";
 import SettingsSecurityPage from "./pages/Settings/SettingsSecurityPage";
+import ChatThreadsPage from "./pages/Chat/ChatThreadsPage";
+import ChatConversationPage from "./pages/Chat/ChatConversationPage";
+import AfterSearchPage from "./pages/AfterSearchPage";
 
 function App() {
   return (
@@ -56,6 +59,11 @@ function App() {
         <Route path="/settings/profile" element={<SettingsProfilePage />} />
         <Route path="/settings/security" element={<SettingsSecurityPage />} />
 
+
+        <Route path="/chat" element={<ChatThreadsPage />} />
+        <Route path="/chat/:peerId" element={<ChatConversationPage />} />
+
+        <Route path="/search" element={<AfterSearchPage/>}/>
         <Route path="*" element={<NotFoundPage />} />
         
       </Routes>
