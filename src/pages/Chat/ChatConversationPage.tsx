@@ -12,11 +12,20 @@ import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 
 import { useMeAuth } from "../../hooks/useMeAuth";
-import { getRecentMessages, sendMessage, recallMessage } from "../../api/chatApi";
+import {
+  getRecentMessages,
+  sendMessage,
+  recallMessage,
+} from "../../api/chatApi";
 import { getUserProfile } from "../../api/userApi";
 import type { ChatMessage } from "../../types/chat";
 import { MessageContentType } from "../../types/chat";
 import type { UserProfile } from "../../types/user";
+import {
+  chatWsManager,
+  WsNewMessagePayload,
+  WsRecallPayload,
+} from "../../ws/chatWsClient";
 
 function genClientMsgId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -26,7 +35,7 @@ function genClientMsgId(): string {
   return `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-// 微信风格的时间分隔文案
+// 时间分隔文案
 function formatTimeSeparatorLabel(tsMs: number): string {
   const d = new Date(tsMs);
   const now = new Date();
@@ -63,7 +72,6 @@ const ChatConversationPage: React.FC = () => {
   const { peerId } = useParams<{ peerId: string }>();
   const peerUserId = Number(peerId);
 
-  // 当前登录用户
   const { userId } = useMeAuth();
   const myId = userId ?? null;
 
@@ -78,10 +86,12 @@ const ChatConversationPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [input, setInput] = useState<string>("");
 
-  // 当前被“选中”的消息（显示时间 & ...）
   const [selectedMsgId, setSelectedMsgId] = useState<number | null>(null);
-  // 当前展开菜单的消息（... 被点开）
   const [menuOpenMsgId, setMenuOpenMsgId] = useState<number | null>(null);
+
+  const [wsConnected, setWsConnected] = useState<boolean>(
+    chatWsManager.isConnected()
+  );
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -90,6 +100,85 @@ const ChatConversationPage: React.FC = () => {
     messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
   }
 
+  // 订阅 WebSocket 事件
+  useEffect(() => {
+    if (!myId) return;
+
+    chatWsManager.ensureConnected();
+
+    const offConn = chatWsManager.onConnectionChange((connected) => {
+      setWsConnected(connected);
+      if (connected && peerUserId) {
+        // 连接成功后告诉后端：我正在看这个会话
+        chatWsManager.sendRead(peerUserId);
+      }
+    });
+
+    const offNew = chatWsManager.onNewMessage(
+      (payload: WsNewMessagePayload) => {
+        if (!myId || !peerUserId) return;
+
+        const isThisConversation =
+          (payload.from_user_id === myId &&
+            payload.to_user_id === peerUserId) ||
+          (payload.to_user_id === myId &&
+            payload.from_user_id === peerUserId);
+
+        if (!isThisConversation) return;
+
+        const msg: ChatMessage = {
+          id: payload.id,
+          from_user_id: payload.from_user_id,
+          to_user_id: payload.to_user_id,
+          content_type: payload.content_type,
+          content: payload.content,
+          sent_at_ms: payload.sent_at_ms,
+        };
+
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === msg.id)) return prev;
+          const next = [...prev, msg];
+          next.sort((a, b) => a.sent_at_ms - b.sent_at_ms);
+          return next;
+        });
+
+        // 我正在这个会话里，顺便 ack 一下
+        chatWsManager.sendRead(peerUserId);
+        setTimeout(scrollToBottom, 0);
+      }
+    );
+
+    const offRecall = chatWsManager.onRecall(
+      (payload: WsRecallPayload) => {
+        if (!myId || !peerUserId) return;
+
+        const isThisConversation =
+          (payload.from_user_id === myId &&
+            payload.to_user_id === peerUserId) ||
+          (payload.to_user_id === myId &&
+            payload.from_user_id === peerUserId);
+
+        if (!isThisConversation) return;
+
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === payload.id
+              ? { ...m, content_type: MessageContentType.RECALL }
+              : m
+          )
+        );
+      }
+    );
+
+    return () => {
+      offConn();
+      offNew();
+      offRecall();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myId, peerUserId]);
+
+  // 初次加载历史消息 + 用户信息
   async function loadInitial() {
     if (!peerUserId) return;
     try {
@@ -106,10 +195,12 @@ const ChatConversationPage: React.FC = () => {
       }
 
       const ms = msgResp.messages || [];
-      // 窗口展示按时间从旧到新
       ms.sort((a, b) => a.sent_at_ms - b.sent_at_ms);
       setMessages(ms);
       setNextCursor(msgResp.has_more ? msgResp.next_cursor ?? null : null);
+
+      // 刚进入会话也 ack 一次
+      chatWsManager.sendRead(peerUserId);
     } catch (e: any) {
       setError(e?.message || "Failed to load conversation");
     } finally {
@@ -172,9 +263,17 @@ const ChatConversationPage: React.FC = () => {
       }
 
       const msg: ChatMessage = resp.message;
-      setMessages((prev) => [...prev, msg]);
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        const next = [...prev, msg];
+        next.sort((a, b) => a.sent_at_ms - b.sent_at_ms);
+        return next;
+      });
       setInput("");
       setTimeout(scrollToBottom, 0);
+
+      // 自己发完也发一个 read（基本上未读为 0，但保持语义统一）
+      chatWsManager.sendRead(peerUserId);
     } catch (err: any) {
       setError(err?.message || "Send message failed");
     } finally {
@@ -206,7 +305,6 @@ const ChatConversationPage: React.FC = () => {
         return;
       }
 
-      // 本地把这条消息标记成 RECALL
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === m.id
@@ -225,7 +323,6 @@ const ChatConversationPage: React.FC = () => {
     e?: React.MouseEvent<HTMLButtonElement>
   ) {
     if (e) e.stopPropagation();
-    // 简单占位
     setError("Thanks for reporting! Our team will review this message.");
   }
 
@@ -246,7 +343,6 @@ const ChatConversationPage: React.FC = () => {
     setMenuOpenMsgId((prev) => (prev === m.id ? null : m.id));
   }
 
-  // 点击消息区域空白部分收起菜单 / 选中态
   function handleMessagesBlankClick() {
     setSelectedMsgId(null);
     setMenuOpenMsgId(null);
@@ -292,9 +388,10 @@ const ChatConversationPage: React.FC = () => {
     const withinRecallWindow =
       Date.now() - m.sent_at_ms <= 5 * 60 * 1000 && isMine;
 
-    // 撤回态：只显示提示文字 + 可选 Report
     if (isRecall) {
-      const text = isMine ? "You recalled a message" : "The other side recalled a message";
+      const text = isMine
+        ? "You recalled a message"
+        : "The other side recalled a message";
       return (
         <div
           key={m.id}
@@ -323,7 +420,6 @@ const ChatConversationPage: React.FC = () => {
       );
     }
 
-    // 正常消息
     return (
       <div
         key={m.id}
@@ -345,7 +441,6 @@ const ChatConversationPage: React.FC = () => {
 
           {isSelected && (
             <>
-              {/* 时间 + ... */}
               <div className="d-flex justify-content-between align-items-center mt-1">
                 <small className="text-muted" style={{ fontSize: 11 }}>
                   {new Date(m.sent_at_ms).toLocaleTimeString()}
@@ -360,7 +455,6 @@ const ChatConversationPage: React.FC = () => {
                 </button>
               </div>
 
-              {/* 展开的菜单：做成明显一点的 “小条” */}
               {isMenuOpen && (
                 <div className="d-flex justify-content-end mt-2 gap-2">
                   {withinRecallWindow && (
@@ -390,7 +484,6 @@ const ChatConversationPage: React.FC = () => {
     );
   }
 
-  // 带 10 分钟间隔时间条的消息列表
   function renderMessagesList() {
     const elements: JSX.Element[] = [];
     const TEN_MIN_MS = 10 * 60 * 1000;
@@ -423,95 +516,95 @@ const ChatConversationPage: React.FC = () => {
   }
 
   return (
-    <>
-      <main className="py-3">
-        <Container style={{ maxWidth: 720, height: "calc(100vh - 70px)" }}>
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2 }}
-            className="d-flex flex-column h-100"
-          >
-            {/* 顶部 header */}
-            <div className="d-flex align-items-center mb-3">
-              <Button
-                variant="link"
-                className="me-2 p-0"
-                onClick={() => navigate("/chat")}
-              >
-                ← Back
-              </Button>
-              {renderAvatar(peerProfile)}
-              <div className="ms-2">
-                <div className="fw-bold">
-                  {peerProfile?.userName ?? `User ${peerUserId}`}
-                </div>
-                <small className="text-muted">Chat</small>
-              </div>
-            </div>
-
-            {error && <Alert variant="danger">{error}</Alert>}
-
-            {/* 消息区域 */}
-            <div
-              className="flex-grow-1 mb-3 border rounded-3 p-3"
-              style={{ overflowY: "auto" }}
-              onClick={handleMessagesBlankClick}
+    <main className="py-3">
+      <Container style={{ maxWidth: 720, height: "calc(100vh - 70px)" }}>
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+          className="d-flex flex-column h-100"
+        >
+          {/* Header */}
+          <div className="d-flex align-items-center mb-3">
+            <Button
+              variant="link"
+              className="me-2 p-0"
+              onClick={() => navigate("/chat")}
             >
-              {loading && !messages.length ? (
-                <div className="d-flex justify-content-center py-5">
-                  <Spinner animation="border" />
-                </div>
-              ) : (
-                <>
-                  {nextCursor && (
-                    <div className="text-center mb-3">
-                      <Button
-                        size="sm"
-                        variant="outline-secondary"
-                        onClick={loadOlder}
-                        disabled={loadingMore}
-                      >
-                        {loadingMore ? "Loading..." : "Load older messages"}
-                      </Button>
-                    </div>
-                  )}
-
-                  {renderMessagesList()}
-
-                  {!loading && !messages.length && (
-                    <div className="text-center text-muted">
-                      No messages yet, say hi!
-                    </div>
-                  )}
-
-                  <div ref={messagesEndRef} />
-                </>
-              )}
+              ← Back
+            </Button>
+            {renderAvatar(peerProfile)}
+            <div className="ms-2">
+              <div className="fw-bold">
+                {peerProfile?.userName ?? `User ${peerUserId}`}
+              </div>
+              <small className="text-muted">
+                Chat {wsConnected ? "(connected)" : "(offline)"}
+              </small>
             </div>
+          </div>
 
-            {/* 输入框 */}
-            <Form onSubmit={handleSend}>
-              <InputGroup>
-                <Form.Control
-                  placeholder="Type a message..."
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  disabled={sending}
-                />
-                <Button
-                  type="submit"
-                  variant="primary"
-                  disabled={sending || !input.trim()}
-                >
-                  {sending ? "Sending..." : "Send"}
-                </Button>
-              </InputGroup>
-            </Form>
-          </motion.div>
-        </Container>
-      </main>
-    </>
+          {error && <Alert variant="danger">{error}</Alert>}
+
+          {/* Messages area */}
+          <div
+            className="flex-grow-1 mb-3 border rounded-3 p-3"
+            style={{ overflowY: "auto" }}
+            onClick={handleMessagesBlankClick}
+          >
+            {loading && !messages.length ? (
+              <div className="d-flex justify-content-center py-5">
+                <Spinner animation="border" />
+              </div>
+            ) : (
+              <>
+                {nextCursor && (
+                  <div className="text-center mb-3">
+                    <Button
+                      size="sm"
+                      variant="outline-secondary"
+                      onClick={loadOlder}
+                      disabled={loadingMore}
+                    >
+                      {loadingMore ? "Loading..." : "Load older messages"}
+                    </Button>
+                  </div>
+                )}
+
+                {renderMessagesList()}
+
+                {!loading && !messages.length && (
+                  <div className="text-center text-muted">
+                    No messages yet, say hi!
+                  </div>
+                )}
+
+                <div ref={messagesEndRef} />
+              </>
+            )}
+          </div>
+
+          {/* Input */}
+          <Form onSubmit={handleSend}>
+            <InputGroup>
+              <Form.Control
+                placeholder="Type a message..."
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                disabled={sending}
+              />
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={sending || !input.trim()}
+              >
+                {sending ? "Sending..." : "Send"}
+              </Button>
+            </InputGroup>
+          </Form>
+        </motion.div>
+      </Container>
+    </main>
   );
 };
 

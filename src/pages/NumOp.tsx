@@ -12,8 +12,6 @@ export default function GetNumOpPage() {
     setMyHistory(stored);
   }, []);
 
-
-  
   const getToBinary = () => {
     if (!myNum.trim()) return;
     setStatus("loading");

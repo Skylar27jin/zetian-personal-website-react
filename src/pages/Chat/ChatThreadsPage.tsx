@@ -1,6 +1,13 @@
 // src/pages/chat/ChatThreadsPage.tsx
 import React, { useEffect, useState } from "react";
-import { Container, ListGroup, Badge, Spinner, Alert, Button } from "react-bootstrap";
+import {
+  Container,
+  ListGroup,
+  Badge,
+  Spinner,
+  Alert,
+  Button,
+} from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
@@ -13,6 +20,11 @@ import { getUserProfile } from "../../api/userApi";
 import type { ChatThread, UserPresence } from "../../types/chat";
 import type { UserProfile } from "../../types/user";
 import { PresenceStatus } from "../../types/chat";
+import { useMeAuth } from "../../hooks/useMeAuth";
+import {
+  chatWsManager,
+  WsNewMessagePayload,
+} from "../../ws/chatWsClient";
 
 interface PeerExtraInfo {
   profile?: UserProfile;
@@ -26,6 +38,9 @@ const ChatThreadsPage: React.FC = () => {
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
+
+  const { userId } = useMeAuth();
+  const myId = userId ?? null;
 
   const navigate = useNavigate();
 
@@ -44,11 +59,9 @@ const ChatThreadsPage: React.FC = () => {
       setThreads((prev) => (append ? [...prev, ...newThreads] : newThreads));
       setNextCursor(resp.has_more ? resp.next_cursor ?? null : null);
 
-      // 拿所有 peer 的 id
       const peerIds = newThreads.map((t) => t.peer_user_id);
       if (peerIds.length === 0) return;
 
-      // 并行拿在线状态 & 用户信息（头像、名字）
       const [presenceResp, profilesList] = await Promise.all([
         batchGetPresence({ user_ids: peerIds }),
         Promise.all(
@@ -88,9 +101,37 @@ const ChatThreadsPage: React.FC = () => {
     }
   }
 
+  // 初次加载
   useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     fetchThreads();
   }, []);
+
+  // 订阅 WebSocket 新消息：有新消息时刷新 thread 列表（保证 unread_count 一致）
+  useEffect(() => {
+    if (!myId) return;
+
+    chatWsManager.ensureConnected();
+
+    const offNew = chatWsManager.onNewMessage(
+      (payload: WsNewMessagePayload) => {
+        if (!myId) return;
+
+        const relatedToMe =
+          payload.from_user_id === myId || payload.to_user_id === myId;
+        if (!relatedToMe) return;
+
+        // 有任何相关新消息，就重新 fetch 一次 thread 列表
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        fetchThreads();
+      }
+    );
+
+    return () => {
+      offNew();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myId]);
 
   function renderAvatar(peerId: number, profile?: UserProfile) {
     const size = 48;
@@ -151,7 +192,9 @@ const ChatThreadsPage: React.FC = () => {
         <div className="flex-grow-1">
           <div className="d-flex justify-content-between align-items-center">
             <div className="d-flex align-items-center gap-2">
-              <strong>{profile?.userName ?? `User ${thread.peer_user_id}`}</strong>
+              <strong>
+                {profile?.userName ?? `User ${thread.peer_user_id}`}
+              </strong>
               {renderPresence(presence)}
             </div>
             <small className="text-muted">
